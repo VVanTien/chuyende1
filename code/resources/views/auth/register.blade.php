@@ -34,7 +34,7 @@
     <p>Điền thông tin để đăng ký tài khoản quản trị viên mới.</p>
 </div>
 
-<form method="POST" action="{{ url('/register') }}" id="register-form" novalidate>
+<form method="POST" action="{{ url('/auth/register') }}" id="register-form" novalidate>
     @csrf
 
     {{-- Họ & Tên --}}
@@ -182,7 +182,7 @@
 </form>
 
 <div class="auth-footer-link" style="margin-top:20px;">
-    Đã có tài khoản? <a href="{{ url('/login') }}">Đăng nhập ngay</a>
+    Đã có tài khoản? <a href="{{ url('/auth/login') }}">Đăng nhập ngay</a>
 </div>
 
 @endsection

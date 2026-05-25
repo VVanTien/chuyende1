@@ -352,10 +352,60 @@
         .stats-grid { grid-template-columns: repeat(2,1fr); }
         .form-row   { grid-template-columns: 1fr; }
     }
+
+    /* ====== UPLOAD ZONE ====== */
+    .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-sm);
+        padding: 20px 16px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg);
+        transition: border-color .2s, background .2s;
+        position: relative;
+        min-height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+    .upload-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+    .upload-icon { font-size: 26px; color: var(--text-muted); }
+    .upload-text { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .upload-hint { font-size: 11px; color: var(--text-muted); }
+    .upload-preview { position: relative; display: flex; justify-content: center; width: 100%; }
+    .upload-remove-btn {
+        position: absolute; top: -8px; right: -8px;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: #fff;
+        border: none; cursor: pointer;
+        font-size: 11px;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 2;
+    }
 </style>
 @endsection
 
 @section('content')
+
+@php
+$countryMap = [
+    'China'       => 'Trung Quốc',
+    'France'      => 'Pháp',
+    'Germany'     => 'Đức',
+    'India'       => 'Ấn Độ',
+    'Italy'       => 'Ý',
+    'Japan'       => 'Nhật Bản',
+    'South Korea' => 'Hàn Quốc',
+    'Sweden'      => 'Thụy Điển',
+    'UK'          => 'Anh',
+    'USA'         => 'Mỹ',
+    'Vietnam'     => 'Việt Nam',
+];
+@endphp
 
 {{-- PAGE HEADER --}}
 <div class="page-super">BRANDS OVERVIEW</div>
@@ -371,29 +421,25 @@
     <div class="stat-card">
         <div class="stat-label">Tổng hãng xe</div>
         <div class="stat-value-row">
-            <span class="stat-value">48</span>
-            <span class="stat-tag">+3</span>
+            <span class="stat-value">{{ number_format($totalBrands) }}</span>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Hãng hoạt động</div>
         <div class="stat-value-row">
-            <span class="stat-value">42</span>
-            <span class="stat-tag neutral">87.5%</span>
+            <span class="stat-value">{{ number_format($activeBrands) }}</span>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Xe trong kho</div>
+        <div class="stat-label">Tổng số xe</div>
         <div class="stat-value-row">
-            <span class="stat-value">1,284</span>
-            <span class="stat-tag">+4%</span>
+            <span class="stat-value">{{ number_format($totalCars) }}</span>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Hãng xe mới (tháng)</div>
         <div class="stat-value-row">
-            <span class="stat-value">3</span>
-            <span class="stat-tag neutral">+tháng này</span>
+            <span class="stat-value">{{ number_format($newBrandsThisMonth) }}</span>
         </div>
     </div>
 </div>
@@ -402,30 +448,27 @@
 <div class="table-card">
 
     {{-- Toolbar --}}
-    <div class="table-toolbar">
+    <form method="GET" action="{{ route('brands.index') }}" class="table-toolbar" id="filter-form">
         <div class="t-search">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="brand-search" placeholder="Tìm tên hãng..." aria-label="Tìm kiếm hãng">
+            <input type="text" name="search" value="{{ request('search') }}" id="brand-search" placeholder="Tìm tên hãng..." aria-label="Tìm kiếm hãng">
+            <button type="submit" style="display:none;"></button>
         </div>
-        <select class="filter-select" id="filter-country" aria-label="Lọc theo quốc gia">
+        <select class="filter-select" name="country" aria-label="Lọc theo quốc gia" onchange="this.form.submit()">
             <option value="">Tất cả quốc gia</option>
-            <option>Đức</option>
-            <option>Nhật Bản</option>
-            <option>Hàn Quốc</option>
-            <option>Mỹ</option>
-            <option>Ý</option>
-            <option>Anh</option>
+            @foreach($countries as $c)
+                <option value="{{ $c }}" {{ request('country') == $c ? 'selected' : '' }}>
+                    {{ $countryMap[$c] ?? $c }}
+                </option>
+            @endforeach
         </select>
-        <select class="filter-select" id="filter-brand-status" aria-label="Lọc theo trạng thái">
+        <select class="filter-select" name="status" aria-label="Lọc theo trạng thái" onchange="this.form.submit()">
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="inactive">Không hoạt động</option>
+            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Không hoạt động</option>
         </select>
         <div class="toolbar-spacer"></div>
-        <button class="btn btn-ghost" id="btn-export-brands">
-            <i class="fa-solid fa-download"></i> Xuất
-        </button>
-    </div>
+    </form>
 
     {{-- Table --}}
     <div style="overflow-x:auto;">
@@ -442,227 +485,193 @@
                 </tr>
             </thead>
             <tbody id="brands-tbody">
-
-                <tr data-status="active" data-country="đức">
+                @forelse($brands as $brand)
+                <tr>
                     <td>
                         <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#e63946,#d62828);">Po</div>
+                            @if($brand->logo_theme)
+                                <img src="{{ asset($brand->logo_theme) }}" alt="{{ $brand->name }}" style="width: 46px; height: 46px; border-radius: 10px; object-fit: contain; padding: 4px; background: var(--surface); border: 1px solid var(--border-light);">
+                            @else
+                                <div class="brand-logo" style="background:linear-gradient(135deg, #1a56db, #1344b5); color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                                    {{ substr($brand->name, 0, 2) }}
+                                </div>
+                            @endif
                             <div>
-                                <div class="brand-name">Porsche</div>
-                                <div class="brand-slug">porsche.com</div>
+                                <div class="brand-name">{{ $brand->name }}</div>
+                                <div class="brand-slug">{{ $brand->website_url ?? $brand->slug }}</div>
                             </div>
                         </div>
                     </td>
-                    <td class="country-cell"><span class="country-flag">🇩🇪</span> Đức</td>
-                    <td>1931</td>
-                    <td class="num-cell">186</td>
-                    <td class="avail-cell">124</td>
-                    <td><span class="status-pill pill-active">HOẠT ĐỘNG</span></td>
+                    <td class="country-cell">{{ $countryMap[$brand->country] ?? ($brand->country ?? '-') }}</td>
+                    <td>{{ $brand->established_year ?? '-' }}</td>
+                    <td class="num-cell" style="text-align: right;">{{ $brand->cars_count }}</td>
+                    <td class="avail-cell" style="text-align: right;">-</td>
+                    <td>
+                        @if($brand->status == 'active')
+                            <span class="status-pill pill-active">HOẠT ĐỘNG</span>
+                        @else
+                            <span class="status-pill pill-inactive">TẠM DỪNG</span>
+                        @endif
+                    </td>
                     <td>
                         <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('Porsche')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(1)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(1)"><i class="fa-solid fa-trash"></i></button>
+                            <button type="button" class="act-btn" title="Sửa" onclick="editBrand({{ $brand }})"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="act-btn danger" title="Xóa" onclick="confirmDeleteModal({{ $brand->id }}, '{{ $brand->name }}')"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
-
-                <tr data-status="active" data-country="nhật bản">
-                    <td>
-                        <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#cc0000,#990000);">To</div>
-                            <div>
-                                <div class="brand-name">Toyota</div>
-                                <div class="brand-slug">toyota.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="country-cell"><span class="country-flag">🇯🇵</span> Nhật Bản</td>
-                    <td>1937</td>
-                    <td class="num-cell">312</td>
-                    <td class="avail-cell">218</td>
-                    <td><span class="status-pill pill-active">HOẠT ĐỘNG</span></td>
-                    <td>
-                        <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('Toyota')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(2)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(2)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                @empty
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fa-solid fa-ban" style="font-size:36px;opacity:.3;"></i>
+                        <p style="margin-top:10px;font-size:14px;font-weight:500;">Không có dữ liệu hãng xe.</p>
                     </td>
                 </tr>
-
-                <tr data-status="active" data-country="đức">
-                    <td>
-                        <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#1a56db,#1344b5);">BM</div>
-                            <div>
-                                <div class="brand-name">BMW</div>
-                                <div class="brand-slug">bmw.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="country-cell"><span class="country-flag">🇩🇪</span> Đức</td>
-                    <td>1916</td>
-                    <td class="num-cell">203</td>
-                    <td class="avail-cell">150</td>
-                    <td><span class="status-pill pill-active">HOẠT ĐỘNG</span></td>
-                    <td>
-                        <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('BMW')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(3)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(3)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-
-                <tr data-status="active" data-country="đức">
-                    <td>
-                        <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#111,#333);">MB</div>
-                            <div>
-                                <div class="brand-name">Mercedes</div>
-                                <div class="brand-slug">mercedes-benz.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="country-cell"><span class="country-flag">🇩🇪</span> Đức</td>
-                    <td>1926</td>
-                    <td class="num-cell">178</td>
-                    <td class="avail-cell">99</td>
-                    <td><span class="status-pill pill-active">HOẠT ĐỘNG</span></td>
-                    <td>
-                        <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('Mercedes')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(4)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(4)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-
-                <tr data-status="active" data-country="ý">
-                    <td>
-                        <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#ffd700,#b8860b);">La</div>
-                            <div>
-                                <div class="brand-name">Lamborghini</div>
-                                <div class="brand-slug">lamborghini.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="country-cell"><span class="country-flag">🇮🇹</span> Ý</td>
-                    <td>1963</td>
-                    <td class="num-cell">48</td>
-                    <td class="avail-cell">32</td>
-                    <td><span class="status-pill pill-active">HOẠT ĐỘNG</span></td>
-                    <td>
-                        <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('Lamborghini')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(5)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(5)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-
-                <tr data-status="inactive" data-country="mỹ">
-                    <td>
-                        <div class="brand-cell-wrap">
-                            <div class="brand-logo" style="background:linear-gradient(135deg,#0ea5e9,#0369a1);">Lu</div>
-                            <div>
-                                <div class="brand-name">Lucid</div>
-                                <div class="brand-slug">lucidmotors.com</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="country-cell"><span class="country-flag">🇺🇸</span> Mỹ</td>
-                    <td>2007</td>
-                    <td class="num-cell">56</td>
-                    <td class="avail-cell">38</td>
-                    <td><span class="status-pill pill-inactive">TẠM DỪNG</span></td>
-                    <td>
-                        <div class="action-group">
-                            <button class="act-btn" title="Xem xe" onclick="viewBrand('Lucid')"><i class="fa-solid fa-eye"></i></button>
-                            <button class="act-btn" title="Sửa" onclick="editBrand(6)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteBrand(6)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    {{-- Empty state --}}
-    <div id="empty-brands" style="display:none; padding:48px 20px; text-align:center; color:var(--text-muted);">
-        <i class="fa-solid fa-ban" style="font-size:36px;opacity:.3;"></i>
-        <p style="margin-top:10px;font-size:14px;font-weight:500;">Không tìm thấy hãng xe phù hợp.</p>
-    </div>
-
     {{-- Footer --}}
-    <div class="table-foot">
-        <span class="foot-info" id="brand-foot-info">Hiển thị 1–6 trong tổng 48 hãng</span>
-        <nav class="pagination" aria-label="Phân trang hãng xe">
-            <button class="page-btn disabled" aria-label="Trang trước"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="page-btn active" aria-current="page">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn">3</button>
-            <button class="page-btn" aria-label="Trang tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+    <div class="table-foot" style="padding: 14px 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+        <span class="foot-info" id="brand-foot-info" style="font-size: 13px; color: var(--text-secondary);">
+            Hiển thị {{ $brands->firstItem() ?? 0 }}–{{ $brands->lastItem() ?? 0 }} trong tổng {{ number_format($brands->total()) }} hãng xe
+        </span>
+        @php $brands->appends(request()->query()) @endphp
+        <nav class="pagination" aria-label="Phân trang hãng xe" style="display: flex; gap: 4px;">
+            @if ($brands->onFirstPage())
+                <span class="act-btn disabled" style="opacity: 0.5; pointer-events: none;"><i class="fa-solid fa-chevron-left"></i></span>
+            @else
+                <a href="{{ $brands->previousPageUrl() }}" class="act-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            @endif
+
+            @foreach ($brands->getUrlRange(1, $brands->lastPage()) as $page => $url)
+                @if ($page >= $brands->currentPage() - 2 && $page <= $brands->currentPage() + 2)
+                    <a href="{{ $url }}" class="act-btn" style="{{ $page == $brands->currentPage() ? 'background: var(--primary); color: white;' : '' }}">{{ $page }}</a>
+                @endif
+            @endforeach
+
+            @if ($brands->hasMorePages())
+                <a href="{{ $brands->nextPageUrl() }}" class="act-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            @else
+                <span class="act-btn disabled" style="opacity: 0.5; pointer-events: none;"><i class="fa-solid fa-chevron-right"></i></span>
+            @endif
         </nav>
     </div>
-
 </div>
 
 {{-- MODAL: Thêm / Sửa hãng --}}
 <div class="modal-overlay" id="brand-modal" role="dialog" aria-modal="true" aria-labelledby="brand-modal-title">
     <div class="modal">
-        <div class="modal-header">
-            <h2 id="brand-modal-title">Thêm hãng xe mới</h2>
-            <button class="modal-close" id="brand-modal-close" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label for="brand-name-input">Tên hãng</label>
-                <input type="text" id="brand-name-input" placeholder="VD: Ferrari">
+        <form id="brand-form" action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="_method" id="form-method" value="POST">
+            
+            <div class="modal-header">
+                <h2 id="brand-modal-title">Thêm hãng xe mới</h2>
+                <button type="button" class="modal-close" id="brand-modal-close" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="form-row">
+            <div class="modal-body">
                 <div class="form-group">
-                    <label for="brand-country">Quốc gia</label>
-                    <select id="brand-country">
-                        <option value="">Chọn quốc gia...</option>
-                        <option>Đức</option>
-                        <option>Nhật Bản</option>
-                        <option>Hàn Quốc</option>
-                        <option>Mỹ</option>
-                        <option>Ý</option>
-                        <option>Anh</option>
-                        <option>Pháp</option>
-                        <option>Trung Quốc</option>
-                    </select>
+                    <label for="brand-name-input">Tên hãng</label>
+                    <input type="text" name="name" id="brand-name-input" placeholder="VD: Ferrari" required>
                 </div>
-                <div class="form-group">
-                    <label for="brand-founded">Năm thành lập</label>
-                    <input type="number" id="brand-founded" placeholder="VD: 1950" min="1800" max="2030">
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label>Hình ảnh Logo</label>
+                    <div class="upload-zone" id="brand-logo-zone" onclick="document.getElementById('brand-logo').click()">
+                        <div class="upload-preview" id="brand-logo-preview" style="display:none;">
+                            <img id="brand-logo-preview-img" src="" alt="Preview" style="max-height:120px; max-width:100%; border-radius:8px; object-fit:contain;">
+                            <button type="button" class="upload-remove-btn" id="brand-logo-remove" title="Xóa ảnh">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div class="upload-placeholder" id="brand-logo-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                            <span class="upload-text">Nhấn để chọn hoặc kéo thả ảnh</span>
+                            <span class="upload-hint">PNG, JPG, SVG, WEBP &mdash; tối đa 2MB</span>
+                        </div>
+                        <input type="file" name="logo_theme" id="brand-logo" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="brand-country">Quốc gia</label>
+                        <select name="country" id="brand-country">
+                            <option value="">-- Chọn quốc gia --</option>
+                            @php
+                                $countryList = collect([
+                                    'China'        => 'Trung Quốc',
+                                    'France'       => 'Pháp',
+                                    'Germany'      => 'Đức',
+                                    'India'        => 'Ấn Độ',
+                                    'Italy'        => 'Ý',
+                                    'Japan'        => 'Nhật Bản',
+                                    'South Korea'  => 'Hàn Quốc',
+                                    'Sweden'       => 'Thụy Điển',
+                                    'UK'           => 'Anh',
+                                    'USA'          => 'Mỹ',
+                                    'Vietnam'      => 'Việt Nam',
+                                ]);
+                                // Gộp thêm quốc gia từ DB nếu chưa có trong danh sách
+                                foreach ($countries as $dbCountry) {
+                                    if (!$countryList->has($dbCountry)) {
+                                        $countryList->put($dbCountry, $dbCountry);
+                                    }
+                                }
+                                $countryList = $countryList->sortKeys();
+                            @endphp
+                            @foreach($countryList as $val => $label)
+                                <option value="{{ $val }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="brand-founded">Năm thành lập</label>
+                        <input type="number" name="established_year" id="brand-founded" placeholder="VD: 1950">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="brand-website">Website</label>
+                        <input type="url" name="website_url" id="brand-website" placeholder="VD: https://ferrari.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="brand-status-input">Trạng thái</label>
+                        <select name="status" id="brand-status-input">
+                            <option value="active">Hoạt động</option>
+                            <option value="inactive">Tạm dừng</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="brand-website">Website</label>
-                    <input type="text" id="brand-website" placeholder="VD: ferrari.com">
-                </div>
-                <div class="form-group">
-                    <label for="brand-status-input">Trạng thái</label>
-                    <select id="brand-status-input">
-                        <option value="active">Hoạt động</option>
-                        <option value="inactive">Tạm dừng</option>
-                    </select>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="brand-modal-cancel">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" id="brand-modal-save">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu hãng xe
+                </button>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" id="brand-modal-cancel">Hủy bỏ</button>
-            <button class="btn btn-primary" id="brand-modal-save">
-                <i class="fa-solid fa-floppy-disk"></i> Lưu hãng xe
-            </button>
-        </div>
+        </form>
+    </div>
+</div>
+
+{{-- MODAL XÓA --}}
+<div class="modal-overlay" id="modal-delete">
+    <div class="modal" style="max-width: 400px;">
+        <form id="delete-form" action="" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="modal-header">
+                <h2>Xác nhận xóa</h2>
+                <button type="button" class="modal-close" onclick="closeDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa hãng xe <strong id="delete-brand-name"></strong> không? Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" style="background: var(--danger);"><i class="fa-solid fa-trash"></i> Xóa</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -678,68 +687,82 @@
     /* Modal */
     const modal      = document.getElementById('brand-modal');
     const modalTitle = document.getElementById('brand-modal-title');
+    const form       = document.getElementById('brand-form');
+    const formMethod = document.getElementById('form-method');
+
     const openModal  = (title) => { modalTitle.textContent = title; modal.classList.add('open'); };
     const closeModal = () => modal.classList.remove('open');
 
-    document.getElementById('btn-add-brand').addEventListener('click', () => openModal('Thêm hãng xe mới'));
+    /* Reset upload zone helper */
+    function resetUploadZone() {
+        const input       = document.getElementById('brand-logo');
+        const preview     = document.getElementById('brand-logo-preview');
+        const previewImg  = document.getElementById('brand-logo-preview-img');
+        const placeholder = document.getElementById('brand-logo-placeholder');
+        if (input)       input.value = '';
+        if (previewImg)  previewImg.src = '';
+        if (preview)     preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
+    }
+
+    document.getElementById('btn-add-brand').addEventListener('click', () => {
+        form.reset();
+        form.action = "{{ route('brands.store') }}";
+        formMethod.value = "POST";
+        resetUploadZone();
+        openModal('Thêm hãng xe mới');
+    });
+
     document.getElementById('brand-modal-close').addEventListener('click', closeModal);
     document.getElementById('brand-modal-cancel').addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if(e.target===modal) closeModal(); });
     document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-    document.getElementById('brand-modal-save').addEventListener('click', () => {
-        const name = document.getElementById('brand-name-input').value.trim();
-        if(!name){ showToast('Vui lòng nhập tên hãng.','error'); return; }
-        closeModal();
-        showToast('Hãng xe đã được lưu thành công!','success');
-        document.getElementById('brand-name-input').value = '';
-    });
-
-    /* Edit / View / Delete */
-    window.editBrand   = (id) => openModal('Chỉnh sửa hãng xe #'+id);
-    window.viewBrand   = (name) => showToast('Đang chuyển đến xe của hãng '+name+'...');
-    window.deleteBrand = (id) => {
-        if(confirm('Xóa hãng #'+id+'?')){
-            showToast('Đã xóa hãng #'+id+'.','error');
-        }
+    /* Edit / Delete */
+    window.editBrand = (brand) => {
+        form.action = `/admin/brands/${brand.id}`;
+        formMethod.value = "PUT";
+        resetUploadZone();
+        
+        document.getElementById('brand-name-input').value = brand.name;
+        document.getElementById('brand-country').value = brand.country || '';
+        document.getElementById('brand-founded').value = brand.established_year || '';
+        document.getElementById('brand-website').value = brand.website_url || '';
+        document.getElementById('brand-status-input').value = brand.status || 'active';
+        
+        openModal('Chỉnh sửa hãng xe: ' + brand.name);
     };
 
-    /* Search & Filter */
-    const searchInput  = document.getElementById('brand-search');
-    const filterCountry = document.getElementById('filter-country');
-    const filterSt      = document.getElementById('filter-brand-status');
-    const emptyEl       = document.getElementById('empty-brands');
+    /* DELETE MODAL */
+    const modalDelete = document.getElementById('modal-delete');
+    const deleteForm = document.getElementById('delete-form');
+    const deleteBrandName = document.getElementById('delete-brand-name');
 
-    function filterTable(){
-        const q  = searchInput.value.toLowerCase();
-        const co = filterCountry.value.toLowerCase();
-        const st = filterSt.value.toLowerCase();
-        let visible = 0;
-
-        document.querySelectorAll('#brands-tbody tr').forEach(row => {
-            const name    = row.querySelector('.brand-name')?.textContent.toLowerCase()||'';
-            const country = row.dataset.country||'';
-            const status  = row.dataset.status||'';
-            const show    = (!q||name.includes(q))
-                         && (!co||country.includes(co))
-                         && (!st||status===st);
-            row.style.display = show ? '' : 'none';
-            if(show) visible++;
-        });
-        emptyEl.style.display = visible===0 ? 'block' : 'none';
-        document.getElementById('brand-foot-info').textContent
-            = visible===0 ? 'Không tìm thấy kết quả'
-                           : `Hiển thị 1–${visible} trong tổng 48 hãng`;
+    window.confirmDeleteModal = function(id, name) {
+        deleteBrandName.textContent = name;
+        deleteForm.action = `/admin/brands/${id}`;
+        modalDelete.classList.add('open');
     }
 
-    searchInput.addEventListener('input', filterTable);
-    filterCountry.addEventListener('change', filterTable);
-    filterSt.addEventListener('change', filterTable);
+    window.closeDeleteModal = function() {
+        modalDelete.classList.remove('open');
+    }
+    modalDelete.addEventListener('click', (e) => { if (e.target === modalDelete) closeDeleteModal(); });
 
-    document.getElementById('btn-export-brands').addEventListener('click', () => showToast('Đang xuất dữ liệu hãng xe...'));
+    /* AUTO-SUBMIT SEARCH */
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.getElementById('filter-form').submit();
+            }, 600);
+        });
+    }
 
     /* Toast */
-    function showToast(msg, type=''){
+    window.showToast = function(msg, type=''){
         const stack = document.getElementById('toast-stack');
         const el    = document.createElement('div');
         el.className = 'toast'+(type?' '+type:'');
@@ -747,6 +770,74 @@
         stack.appendChild(el);
         setTimeout(()=>{ el.classList.add('removing'); setTimeout(()=>el.remove(),220); },3000);
     }
+
+    /* FLASH MESSAGES */
+    @if ($errors->any())
+        @foreach ($errors->all() as $error)
+            showToast("{{ $error }}", "error");
+        @endforeach
+    @endif
+
+    @if (session('success'))
+        showToast("{{ session('success') }}", "success");
+    @endif
+
+})();
+</script>
+
+<script>
+/* ====== Upload Zone: Brand Logo ====== */
+(function(){
+    function setupUploadZone(inputId, previewId, previewImgId, placeholderId, removeId, zoneId) {
+        const input       = document.getElementById(inputId);
+        const preview     = document.getElementById(previewId);
+        const previewImg  = document.getElementById(previewImgId);
+        const placeholder = document.getElementById(placeholderId);
+        const removeBtn   = document.getElementById(removeId);
+        const zone        = document.getElementById(zoneId);
+
+        if (!input) return;
+
+        input.addEventListener('change', function(){
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'flex';
+                    placeholder.style.display = 'none';
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        removeBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            input.value = '';
+            previewImg.src = '';
+            preview.style.display = 'none';
+            placeholder.style.display = 'flex';
+        });
+
+        // Drag & drop
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    setupUploadZone(
+        'brand-logo', 'brand-logo-preview', 'brand-logo-preview-img',
+        'brand-logo-placeholder', 'brand-logo-remove', 'brand-logo-zone'
+    );
 })();
 </script>
 @endsection

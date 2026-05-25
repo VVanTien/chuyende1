@@ -1,0 +1,42 @@
+@startuml UC08 - Xem tổng quan Dashboard
+' =============================================
+' UC08: Xem tổng quan Dashboard
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "Admin" as Admin
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Xem tổng quan\nDashboard" as UC_Main
+
+  usecase "Xem thống kê\ntổng số xe" as UC_Xe
+  usecase "Xem thống kê\nngười dùng hoạt động" as UC_User
+  usecase "Xem thống kê\nlượt đặt xe tháng này" as UC_Booking
+  usecase "Xem thống kê\ntổng doanh thu" as UC_Revenue
+
+  usecase "Xem biểu đồ\nxu hướng đặt xe\n(30 ngày)" as UC_Chart
+  usecase "Xem lưu lượng\nnền tảng" as UC_Traffic
+  usecase "Xem kho xe\nnổi bật" as UC_Popular
+}
+
+Admin --> UC_Main
+
+UC_Main ..> UC_Xe : <<include>>
+UC_Main ..> UC_User : <<include>>
+UC_Main ..> UC_Booking : <<include>>
+UC_Main ..> UC_Revenue : <<include>>
+
+UC_Chart ..> UC_Main : <<extend>>
+UC_Traffic ..> UC_Main : <<extend>>
+UC_Popular ..> UC_Main : <<extend>>
+
+@enduml
+

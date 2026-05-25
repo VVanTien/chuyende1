@@ -15,11 +15,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Xóa code factory mặc định vì cấu trúc bảng đã thay đổi
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Tạo tài khoản Admin mặc định
+        if (!User::where('email', 'admin@kineticmotors.com')->exists()) {
+            User::create([
+                'first_name' => 'Kinetic',
+                'last_name' => 'Admin',
+                'email' => 'admin@kineticmotors.com',
+                'password' => bcrypt('password'), // Mật khẩu mặc định là: password
+                'role' => 'admin',
+                'status' => 'active',
+            ]);
+        }
     }
 }

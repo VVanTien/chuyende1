@@ -12,18 +12,9 @@
         <p>Nhập email tài khoản và chúng tôi sẽ gửi link đặt lại mật khẩu đến hộp thư của bạn.</p>
     </div>
 
-    {{-- Icon minh họa --}}
-    <div style="
-        width: 64px; height: 64px;
-        background: var(--primary-light);
-        border-radius: 16px;
-        display: flex; align-items: center; justify-content: center;
-        margin-bottom: 24px;
-    ">
-        <i class="fa-solid fa-key" style="font-size:26px;color:var(--primary);"></i>
-    </div>
 
-    <form method="POST" action="{{ url('/forgot-password') }}" id="forgot-form" novalidate>
+
+    <form method="POST" action="{{ url('/auth/forgot-password') }}" id="forgot-form" novalidate>
         @csrf
 
         {{-- Email --}}
@@ -120,7 +111,7 @@
 </div>
 
 <div class="auth-footer-link" style="margin-top:24px;">
-    <a href="{{ url('/login') }}" style="display:inline-flex;align-items:center;gap:6px;">
+    <a href="{{ url('/auth/login') }}" style="display:inline-flex;align-items:center;gap:6px;">
         <i class="fa-solid fa-arrow-left" style="font-size:12px;"></i>
         Quay lại đăng nhập
     </a>

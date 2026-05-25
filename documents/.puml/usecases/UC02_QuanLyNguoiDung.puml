@@ -1,0 +1,42 @@
+@startuml UC02 - Quản lý người dùng
+' =============================================
+' UC02: Quản lý người dùng
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "Admin" as Admin
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Quản lý\nngười dùng" as UC_Main
+
+  usecase "Xem danh sách\nngười dùng" as UC_Xem
+  usecase "Thêm người dùng\nmới" as UC_Them
+  usecase "Cập nhật thông tin\nngười dùng" as UC_Sua
+  usecase "Xóa người dùng" as UC_Xoa
+
+  usecase "Tìm kiếm\nngười dùng" as UC_TimKiem
+  usecase "Lọc theo vai trò /\ntrạng thái" as UC_Loc
+  usecase "Cập nhật trạng thái\n(Active/Banned/Pending)" as UC_TrangThai
+}
+
+Admin --> UC_Main
+
+UC_Main ..> UC_Xem : <<include>>
+
+UC_Them ..> UC_Main : <<extend>>
+UC_Sua ..> UC_Main : <<extend>>
+UC_Xoa ..> UC_Main : <<extend>>
+UC_TimKiem ..> UC_Xem : <<extend>>
+UC_Loc ..> UC_Xem : <<extend>>
+UC_TrangThai ..> UC_Main : <<extend>>
+
+@enduml
+

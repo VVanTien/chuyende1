@@ -1,0 +1,115 @@
+@startuml ERD - Sơ đồ quan hệ thực thể
+' =============================================
+' ERD: Sơ đồ quan hệ thực thể (Entity Relationship Diagram)
+' Đồ án: Website quản lý bán ô tô (Kinetic)
+' =============================================
+
+!define Table(name,desc) class name as "desc" << (T,#FF7700) >>
+!define pk(x) <b>x</b>
+!define fk(x) <u>x</u>
+
+' Cấu hình skinparam để sơ đồ đẹp đẽ hơn
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #FFEAEA
+  BorderColor #A80036
+  ArrowColor #333333
+  FontSize 12
+}
+
+Table(users, "users (Người dùng)") {
+  + pk(id): INT [auto_increment]
+  --
+  first_name: VARCHAR(255)
+  last_name: VARCHAR(255)
+  email: VARCHAR(255) [unique]
+  password: VARCHAR(255)
+  role: VARCHAR(50) [customer/admin]
+  status: VARCHAR(50) [active/banned/pending]
+  last_login_at: DATETIME
+  remember_token: VARCHAR(100)
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+Table(brands, "brands (Hãng xe)") {
+  + pk(id): INT [auto_increment]
+  --
+  name: VARCHAR(255) [unique]
+  slug: VARCHAR(255) [unique]
+  country: VARCHAR(100)
+  established_year: INT
+  website_url: VARCHAR(255)
+  logo_theme: VARCHAR(100)
+  status: VARCHAR(50)
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+Table(categories, "categories (Dòng xe / Danh mục)") {
+  + pk(id): INT [auto_increment]
+  --
+  name: VARCHAR(255) [unique]
+  slug: VARCHAR(255) [unique]
+  description: TEXT
+  status: VARCHAR(50)
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+Table(cars, "cars (Xe ô tô)") {
+  + pk(id): INT [auto_increment]
+  --
+  + fk(brand_id): INT
+  + fk(category_id): INT
+  name: VARCHAR(255)
+  vin_code: VARCHAR(255) [unique]
+  year: INT
+  sale_price: DECIMAL(15,2)
+  daily_rate: DECIMAL(15,2)
+  revenue: DECIMAL(15,2)
+  status: VARCHAR(50)
+  thumbnail: VARCHAR(255)
+  description: TEXT
+  is_featured: BOOLEAN
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+Table(orders, "orders (Đơn hàng)") {
+  + pk(id): INT [auto_increment]
+  --
+  order_code: VARCHAR(100) [unique]
+  + fk(user_id): INT
+  + fk(car_id): INT
+  type: VARCHAR(50) [rental/sale]
+  start_date: DATE
+  end_date: DATE
+  total_amount: DECIMAL(15,2)
+  deposit_amount: DECIMAL(15,2)
+  status: VARCHAR(50)
+  notes: TEXT
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+Table(payments, "payments (Thanh toán)") {
+  + pk(id): INT [auto_increment]
+  --
+  + fk(order_id): INT
+  payment_method: VARCHAR(100)
+  transaction_id: VARCHAR(255) [unique]
+  amount: DECIMAL(15,2)
+  status: VARCHAR(50)
+  created_at: DATETIME
+  updated_at: DATETIME
+}
+
+' Mối quan hệ giữa các thực thể
+brands "1" -- "0..*" cars : "hasMany"
+categories "1" -- "0..*" cars : "hasMany"
+users "1" -- "0..*" orders : "hasMany"
+cars "1" -- "0..*" orders : "hasMany"
+orders "1" -- "0..1" payments : "hasOne"
+
+@enduml

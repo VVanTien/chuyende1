@@ -1,0 +1,38 @@
+@startuml UC01 - Đăng ký / Đăng nhập
+' =============================================
+' UC01: Đăng ký / Đăng nhập
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "User" as User
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Đăng ký /\nĐăng nhập" as UC_Main
+
+  usecase "Nhập thông tin\ntài khoản" as UC_NhapTT
+  usecase "Xác thực\nthông tin" as UC_XacThuc
+
+  usecase "Quên mật khẩu" as UC_QuenMK
+  usecase "Nhớ đăng nhập" as UC_Remember
+  usecase "Kiểm tra trạng thái\ntài khoản" as UC_CheckStatus
+}
+
+User --> UC_Main
+
+UC_Main ..> UC_NhapTT : <<include>>
+UC_Main ..> UC_XacThuc : <<include>>
+
+UC_QuenMK ..> UC_Main : <<extend>>
+UC_Remember ..> UC_Main : <<extend>>
+UC_CheckStatus ..> UC_XacThuc : <<extend>>
+
+@enduml
+

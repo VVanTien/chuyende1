@@ -1,0 +1,45 @@
+@startuml UC06 - Quản lý đơn hàng
+' =============================================
+' UC06: Quản lý đơn hàng (Order)
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "Admin" as Admin
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Quản lý\nđơn hàng" as UC_Main
+
+  usecase "Xem danh sách\nđơn hàng" as UC_Xem
+  usecase "Tạo đơn hàng mới" as UC_Them
+  usecase "Cập nhật\nđơn hàng" as UC_Sua
+  usecase "Xóa đơn hàng" as UC_Xoa
+
+  usecase "Tìm kiếm đơn hàng\n(mã đơn / tên KH)" as UC_TimKiem
+  usecase "Lọc theo trạng thái /\nloại đơn" as UC_Loc
+  usecase "Chọn khách hàng\nvà xe" as UC_ChonKH
+  usecase "Thêm ghi chú\nđơn hàng" as UC_GhiChu
+}
+
+Admin --> UC_Main
+
+UC_Main ..> UC_Xem : <<include>>
+
+UC_Them ..> UC_Main : <<extend>>
+UC_Sua ..> UC_Main : <<extend>>
+UC_Xoa ..> UC_Main : <<extend>>
+UC_TimKiem ..> UC_Xem : <<extend>>
+UC_Loc ..> UC_Xem : <<extend>>
+
+UC_Them ..> UC_ChonKH : <<include>>
+UC_GhiChu ..> UC_Them : <<extend>>
+
+@enduml
+

@@ -340,8 +340,22 @@
     }
 
     /* ============================
-       STATUS CELL
+       STATUS CELL & BADGES
     ============================ */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: .2px;
+    }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+    .badge-blue { background: #eff6ff; color: #2563eb; }
+    .badge-purple { background: #f5f3ff; color: #7c3aed; }
+    .badge-green { background: #ecfdf5; color: #059669; }
+
     .status-dot {
         display: inline-flex;
         align-items: center;
@@ -749,9 +763,6 @@
         <p>Quản lý quyền hạn, trạng thái và cài đặt tài khoản cho tất cả thành viên nền tảng.</p>
     </div>
     <div class="page-header-right">
-        <button class="btn btn-ghost" id="btn-filter" aria-label="Lọc người dùng">
-            <i class="fa-solid fa-sliders"></i> Bộ lọc
-        </button>
         <button class="btn btn-primary" id="btn-new-user" aria-label="Thêm người dùng mới">
             <i class="fa-solid fa-user-plus"></i> Người dùng mới
         </button>
@@ -763,29 +774,27 @@
     <div class="stat-card" id="stat-total">
         <div class="stat-label">Tổng người dùng</div>
         <div class="stat-value-row">
-            <span class="stat-value">12,842</span>
-            <span class="stat-change up">+12%</span>
+            <span class="stat-value">{{ number_format($totalUsers) }}</span>
         </div>
     </div>
     <div class="stat-card" id="stat-active">
         <div class="stat-label">Đang hoạt động</div>
         <div class="stat-value-row">
-            <span class="stat-value">3,201</span>
+            <span class="stat-value">{{ number_format($activeUsers) }}</span>
             <span class="stat-sub live">Live</span>
         </div>
     </div>
     <div class="stat-card" id="stat-banned">
-        <div class="stat-label">Bị cấm</div>
+        <div class="stat-label">Người mới (tháng này)</div>
         <div class="stat-value-row">
-            <span class="stat-value">142</span>
-            <span class="stat-change down">-2%</span>
+            <span class="stat-value">{{ number_format($newUsersThisMonth) }}</span>
         </div>
     </div>
     <div class="stat-card" id="stat-retention">
-        <div class="stat-label">Tỷ lệ giữ chân</div>
+        <div class="stat-label">Tình trạng hệ thống</div>
         <div class="stat-value-row">
-            <span class="stat-value">94.8%</span>
-            <span class="stat-sub high">Cao</span>
+            <span class="stat-value">Tốt</span>
+            <span class="stat-sub high">Ổn định</span>
         </div>
     </div>
 </div>
@@ -794,30 +803,31 @@
 <div class="table-card">
 
     {{-- TABLE TOOLBAR --}}
-    <div class="table-toolbar">
+    <form method="GET" action="{{ route('users.index') }}" class="table-toolbar" id="filter-form">
         <div class="table-search">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="table-search-input" placeholder="Tìm tên, email..." aria-label="Tìm kiếm trong bảng">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm tên, email..." aria-label="Tìm kiếm trong bảng">
+            {{-- Ẩn nút submit mặc định --}}
+            <button type="submit" style="display:none;"></button>
         </div>
 
-        <select class="filter-select" id="filter-role" aria-label="Lọc theo vai trò">
+        <select class="filter-select" name="role" aria-label="Lọc theo vai trò" onchange="this.form.submit()">
             <option value="">Tất cả vai trò</option>
-            <option value="admin">Quản trị viên</option>
-            <option value="product-manager">Quản lý sản phẩm</option>
-            <option value="lead-designer">Nhà thiết kế chính</option>
-            <option value="support">Hỗ trợ khách hàng</option>
-            <option value="sales">Nhân viên bán hàng</option>
+            <option value="customer" {{ request('role') == 'customer' ? 'selected' : '' }}>Khách hàng</option>
+            <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Quản trị viên</option>
+            <option value="manager" {{ request('role') == 'manager' ? 'selected' : '' }}>Quản lý</option>
+            <option value="staff" {{ request('role') == 'staff' ? 'selected' : '' }}>Nhân viên</option>
         </select>
 
-        <select class="filter-select" id="filter-status" aria-label="Lọc theo trạng thái">
+        <select class="filter-select" name="status" aria-label="Lọc theo trạng thái" onchange="this.form.submit()">
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="banned">Bị cấm</option>
-            <option value="pending">Chờ duyệt</option>
+            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+            <option value="banned" {{ request('status') == 'banned' ? 'selected' : '' }}>Bị cấm</option>
+            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ duyệt</option>
         </select>
 
         <div class="toolbar-spacer"></div>
-    </div>
+    </form>
 
     {{-- DATA TABLE --}}
     <div style="overflow-x: auto;">
@@ -837,217 +847,91 @@
                 </tr>
             </thead>
             <tbody id="users-tbody">
-
-                {{-- ROW 1 --}}
-                <tr data-user-id="1" data-status="active">
+                @forelse($users as $user)
+                <tr data-user-id="{{ $user->id }}" data-status="{{ $user->status }}">
                     <td>
                         <div class="user-cell">
-                            <div class="user-initials" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);" aria-label="Ảnh đại diện Sarah Jenkins">SJ</div>
+                            <div class="user-initials" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
+                                {{ strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)) }}
+                            </div>
                             <div class="user-meta">
-                                <strong>Sarah Jenkins</strong>
-                                <span>Tham gia Tháng 10 2023</span>
+                                <strong>{{ $user->first_name }} {{ $user->last_name }}</strong>
+                                <span>Tham gia {{ $user->created_at->format('m/Y') }}</span>
                             </div>
                         </div>
                     </td>
-                    <td class="email-cell">sarah.j@kineticmotors.com</td>
-                    <td><span class="badge badge-blue">Quản lý SP</span></td>
-                    <td><span class="status-dot active">HOẠT ĐỘNG</span></td>
+                    <td class="email-cell">{{ $user->email }}</td>
+                    <td>
+                        @php
+                            $roleBadge = 'badge-gray';
+                            $roleName = 'Khách hàng';
+                            if ($user->role == 'admin') { $roleBadge = 'badge-blue'; $roleName = 'Quản trị viên'; }
+                            elseif ($user->role == 'manager') { $roleBadge = 'badge-purple'; $roleName = 'Quản lý'; }
+                            elseif ($user->role == 'staff') { $roleBadge = 'badge-green'; $roleName = 'Nhân viên'; }
+                        @endphp
+                        <span class="badge {{ $roleBadge }}">{{ $roleName }}</span>
+                    </td>
+                    <td>
+                        @if($user->status == 'active')
+                            <span class="status-dot active">HOẠT ĐỘNG</span>
+                        @elseif($user->status == 'pending')
+                            <span class="status-dot pending">CHỜ DUYỆT</span>
+                        @else
+                            <span class="status-dot banned">VÔ HIỆU HÓA</span>
+                        @endif
+                    </td>
                     <td style="text-align:center;">
                         <div class="toggle-wrap">
-                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-1" data-userid="1" checked aria-label="Kích hoạt Sarah Jenkins">
-                            <label class="toggle-label" for="toggle-1"></label>
+                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-{{ $user->id }}" data-userid="{{ $user->id }}" {{ $user->status == 'active' ? 'checked' : '' }} aria-label="Kích hoạt">
+                            <label class="toggle-label" for="toggle-{{ $user->id }}"></label>
                         </div>
                     </td>
                     <td style="text-align:right;">
                         <div class="action-menu-wrap">
-                            <button class="action-btn action-menu-trigger" aria-label="Tùy chọn cho Sarah Jenkins" data-user="1">
+                            <button class="action-btn action-menu-trigger" data-user="{{ $user->id }}">
                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                             </button>
-                            <div class="action-dropdown" id="dropdown-1">
-                                <a href="#" onclick="editUser(1,event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
-                                <a href="#"><i class="fa-solid fa-eye"></i> Xem hồ sơ</a>
-                                <a href="#"><i class="fa-solid fa-key"></i> Đặt lại mật khẩu</a>
+                            <div class="action-dropdown" id="dropdown-{{ $user->id }}">
+                                <a href="#" onclick="editUser({{ $user }}, event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
                                 <div class="action-dropdown-divider"></div>
-                                <button class="danger" onclick="confirmBan(1,event)"><i class="fa-solid fa-ban"></i> Cấm tài khoản</button>
-                                <button class="danger" onclick="confirmDelete(1,event)"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
+                                <button type="button" class="danger" style="width:100%;" onclick="confirmDeleteModal({{ $user->id }}, '{{ $user->first_name }} {{ $user->last_name }}')"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
                             </div>
                         </div>
                     </td>
                 </tr>
-
-                {{-- ROW 2 --}}
-                <tr data-user-id="2" data-status="banned">
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-initials" style="background: linear-gradient(135deg,#f59e0b,#ef4444);" aria-label="Ảnh đại diện Marcus Thorne">MT</div>
-                            <div class="user-meta">
-                                <strong>Marcus Thorne</strong>
-                                <span>Tham gia Tháng 01 2024</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="email-cell">m.thorne@kineticmotors.com</td>
-                    <td><span class="badge badge-purple">Nhà TK Chính</span></td>
-                    <td><span class="status-dot banned">BỊ CẤM</span></td>
-                    <td style="text-align:center;">
-                        <div class="toggle-wrap">
-                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-2" data-userid="2" aria-label="Kích hoạt Marcus Thorne">
-                            <label class="toggle-label" for="toggle-2"></label>
-                        </div>
-                    </td>
-                    <td style="text-align:right;">
-                        <div class="action-menu-wrap">
-                            <button class="action-btn action-menu-trigger" aria-label="Tùy chọn cho Marcus Thorne" data-user="2">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
-                            <div class="action-dropdown" id="dropdown-2">
-                                <a href="#" onclick="editUser(2,event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
-                                <a href="#"><i class="fa-solid fa-eye"></i> Xem hồ sơ</a>
-                                <a href="#"><i class="fa-solid fa-key"></i> Đặt lại mật khẩu</a>
-                                <div class="action-dropdown-divider"></div>
-                                <button class="danger" onclick="confirmBan(2,event)"><i class="fa-solid fa-rotate-left"></i> Gỡ cấm</button>
-                                <button class="danger" onclick="confirmDelete(2,event)"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
-                            </div>
-                        </div>
-                    </td>
+                @empty
+                <tr>
+                    <td colspan="6" style="text-align:center; padding: 40px;">Không có dữ liệu.</td>
                 </tr>
-
-                {{-- ROW 3 --}}
-                <tr data-user-id="3" data-status="active">
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-initials" style="background: linear-gradient(135deg,#10b981,#0ea5e9);" aria-label="Ảnh đại diện Elena Kovic">EK</div>
-                            <div class="user-meta">
-                                <strong>Elena Kovic</strong>
-                                <span>Tham gia Tháng 02 2024</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="email-cell">elena.k@kineticmotors.com</td>
-                    <td><span class="badge badge-gray">Hỗ trợ Cấp II</span></td>
-                    <td><span class="status-dot active">HOẠT ĐỘNG</span></td>
-                    <td style="text-align:center;">
-                        <div class="toggle-wrap">
-                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-3" data-userid="3" checked aria-label="Kích hoạt Elena Kovic">
-                            <label class="toggle-label" for="toggle-3"></label>
-                        </div>
-                    </td>
-                    <td style="text-align:right;">
-                        <div class="action-menu-wrap">
-                            <button class="action-btn action-menu-trigger" aria-label="Tùy chọn cho Elena Kovic" data-user="3">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
-                            <div class="action-dropdown" id="dropdown-3">
-                                <a href="#" onclick="editUser(3,event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
-                                <a href="#"><i class="fa-solid fa-eye"></i> Xem hồ sơ</a>
-                                <a href="#"><i class="fa-solid fa-key"></i> Đặt lại mật khẩu</a>
-                                <div class="action-dropdown-divider"></div>
-                                <button class="danger" onclick="confirmBan(3,event)"><i class="fa-solid fa-ban"></i> Cấm tài khoản</button>
-                                <button class="danger" onclick="confirmDelete(3,event)"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-
-                {{-- ROW 4 --}}
-                <tr data-user-id="4" data-status="active">
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-initials" style="background: linear-gradient(135deg,#ec4899,#f43f5e);" aria-label="Ảnh đại diện James Park">JP</div>
-                            <div class="user-meta">
-                                <strong>James Park</strong>
-                                <span>Tham gia Tháng 03 2024</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="email-cell">j.park@kineticmotors.com</td>
-                    <td><span class="badge badge-green">Nhân viên Bán hàng</span></td>
-                    <td><span class="status-dot active">HOẠT ĐỘNG</span></td>
-                    <td style="text-align:center;">
-                        <div class="toggle-wrap">
-                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-4" data-userid="4" checked aria-label="Kích hoạt James Park">
-                            <label class="toggle-label" for="toggle-4"></label>
-                        </div>
-                    </td>
-                    <td style="text-align:right;">
-                        <div class="action-menu-wrap">
-                            <button class="action-btn action-menu-trigger" aria-label="Tùy chọn cho James Park" data-user="4">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
-                            <div class="action-dropdown" id="dropdown-4">
-                                <a href="#" onclick="editUser(4,event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
-                                <a href="#"><i class="fa-solid fa-eye"></i> Xem hồ sơ</a>
-                                <a href="#"><i class="fa-solid fa-key"></i> Đặt lại mật khẩu</a>
-                                <div class="action-dropdown-divider"></div>
-                                <button class="danger" onclick="confirmBan(4,event)"><i class="fa-solid fa-ban"></i> Cấm tài khoản</button>
-                                <button class="danger" onclick="confirmDelete(4,event)"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-
-                {{-- ROW 5 --}}
-                <tr data-user-id="5" data-status="pending">
-                    <td>
-                        <div class="user-cell">
-                            <div class="user-initials" style="background: linear-gradient(135deg,#64748b,#475569);" aria-label="Ảnh đại diện Nina Okafor">NO</div>
-                            <div class="user-meta">
-                                <strong>Nina Okafor</strong>
-                                <span>Tham gia Tháng 04 2024</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="email-cell">n.okafor@kineticmotors.com</td>
-                    <td><span class="badge badge-amber">Quản trị viên</span></td>
-                    <td><span class="status-dot pending">CHỜ DUYỆT</span></td>
-                    <td style="text-align:center;">
-                        <div class="toggle-wrap">
-                            <input type="checkbox" class="toggle-input user-toggle" id="toggle-5" data-userid="5" aria-label="Kích hoạt Nina Okafor">
-                            <label class="toggle-label" for="toggle-5"></label>
-                        </div>
-                    </td>
-                    <td style="text-align:right;">
-                        <div class="action-menu-wrap">
-                            <button class="action-btn action-menu-trigger" aria-label="Tùy chọn cho Nina Okafor" data-user="5">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
-                            <div class="action-dropdown" id="dropdown-5">
-                                <a href="#" onclick="editUser(5,event)"><i class="fa-solid fa-pen"></i> Chỉnh sửa</a>
-                                <a href="#"><i class="fa-solid fa-eye"></i> Xem hồ sơ</a>
-                                <a href="#"><i class="fa-solid fa-key"></i> Đặt lại mật khẩu</a>
-                                <div class="action-dropdown-divider"></div>
-                                <button class="danger" onclick="confirmBan(5,event)"><i class="fa-solid fa-ban"></i> Cấm tài khoản</button>
-                                <button class="danger" onclick="confirmDelete(5,event)"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    {{-- EMPTY STATE (hidden by default) --}}
-    <div class="empty-state" id="empty-state" style="display:none;" aria-live="polite">
-        <i class="fa-solid fa-users-slash"></i>
-        <p>Không tìm thấy người dùng nào phù hợp.</p>
-    </div>
-
     {{-- TABLE FOOTER --}}
     <div class="table-foot">
-        <span class="table-foot-info" id="showing-info">Hiển thị 1–5 trong tổng 12,842 người dùng</span>
+        <span class="table-foot-info" id="showing-info">
+            Hiển thị {{ $users->firstItem() ?? 0 }}–{{ $users->lastItem() ?? 0 }} trong tổng {{ number_format($users->total()) }} người dùng
+        </span>
+        @php $users->appends(request()->query()) @endphp
         <nav class="pagination" aria-label="Phân trang">
-            <button class="page-btn disabled" id="prev-page" aria-label="Trang trước" disabled>
-                <i class="fa-solid fa-chevron-left"></i>
-            </button>
-            <button class="page-btn active" aria-current="page">1</button>
-            <button class="page-btn" aria-label="Trang 2">2</button>
-            <button class="page-btn" aria-label="Trang 3">3</button>
-            <span style="color:var(--text-muted);font-size:13px;padding:0 4px;">…</span>
-            <button class="page-btn" aria-label="Trang cuối">1,285</button>
-            <button class="page-btn" id="next-page" aria-label="Trang tiếp">
-                <i class="fa-solid fa-chevron-right"></i>
-            </button>
+            @if ($users->onFirstPage())
+                <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+            @else
+                <a href="{{ $users->previousPageUrl() }}" class="page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            @endif
+
+            @foreach ($users->getUrlRange(1, $users->lastPage()) as $page => $url)
+                @if ($page >= $users->currentPage() - 2 && $page <= $users->currentPage() + 2)
+                    <a href="{{ $url }}" class="page-btn {{ $page == $users->currentPage() ? 'active' : '' }}">{{ $page }}</a>
+                @endif
+            @endforeach
+
+            @if ($users->hasMorePages())
+                <a href="{{ $users->nextPageUrl() }}" class="page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            @else
+                <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+            @endif
         </nav>
     </div>
 
@@ -1059,59 +943,88 @@
 =========================================== --}}
 <div class="modal-overlay" id="modal-user" role="dialog" aria-modal="true" aria-labelledby="modal-user-title">
     <div class="modal">
-        <div class="modal-header">
-            <h2 id="modal-user-title">Thêm người dùng mới</h2>
-            <button class="modal-close" id="modal-close-btn" aria-label="Đóng modal">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="input-firstname">Họ</label>
-                    <input type="text" id="input-firstname" placeholder="VD: Nguyễn">
+        <form id="user-form" action="{{ route('users.store') }}" method="POST">
+            @csrf
+            <input type="hidden" name="_method" id="form-method" value="POST">
+            
+            <div class="modal-header">
+                <h2 id="modal-user-title">Thêm người dùng mới</h2>
+                <button type="button" class="modal-close" id="modal-close-btn" aria-label="Đóng modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-firstname">Họ</label>
+                        <input type="text" name="first_name" id="input-firstname" placeholder="VD: Nguyễn" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-lastname">Tên</label>
+                        <input type="text" name="last_name" id="input-lastname" placeholder="VD: Văn A" required>
+                    </div>
                 </div>
+                
                 <div class="form-group">
-                    <label for="input-lastname">Tên</label>
-                    <input type="text" id="input-lastname" placeholder="VD: Văn A">
+                    <label for="input-email">Địa chỉ email</label>
+                    <input type="email" name="email" id="input-email" placeholder="email@kineticmotors.com" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-role">Vai trò</label>
+                        <select name="role" id="input-role">
+                            <option value="customer">Khách hàng</option>
+                            <option value="admin">Quản trị viên</option>
+                            <option value="manager">Quản lý</option>
+                            <option value="staff">Nhân viên</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-status">Trạng thái</label>
+                        <select name="status" id="input-status">
+                            <option value="active">Hoạt động</option>
+                            <option value="banned">Vô hiệu hóa</option>
+                            <option value="pending">Chờ duyệt</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="input-password">Mật khẩu</label>
+                    <input type="password" name="password" id="input-password" placeholder="Tối thiểu 8 ký tự (Bỏ trống nếu không đổi mật khẩu)">
                 </div>
             </div>
-            <div class="form-group">
-                <label for="input-email">Địa chỉ email</label>
-                <input type="email" id="input-email" placeholder="email@kineticmotors.com">
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="modal-cancel-btn">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" id="modal-save-btn">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu người dùng
+                </button>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="input-role">Vai trò</label>
-                    <select id="input-role">
-                        <option value="">Chọn vai trò...</option>
-                        <option value="admin">Quản trị viên</option>
-                        <option value="product-manager">Quản lý sản phẩm</option>
-                        <option value="lead-designer">Nhà thiết kế chính</option>
-                        <option value="support">Hỗ trợ khách hàng</option>
-                        <option value="sales">Nhân viên bán hàng</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="input-status">Trạng thái</label>
-                    <select id="input-status">
-                        <option value="active">Hoạt động</option>
-                        <option value="pending">Chờ duyệt</option>
-                        <option value="banned">Bị cấm</option>
-                    </select>
-                </div>
+        </form>
+    </div>
+</div>
+
+{{-- MODAL XÓA NGƯỜI DÙNG --}}
+<div class="modal-overlay" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title">
+    <div class="modal" style="max-width: 400px;">
+        <form id="delete-form" action="" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="modal-header">
+                <h2 id="modal-delete-title">Xác nhận xóa</h2>
+                <button type="button" class="modal-close" onclick="closeDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="form-group">
-                <label for="input-password">Mật khẩu</label>
-                <input type="password" id="input-password" placeholder="Tối thiểu 8 ký tự">
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa người dùng <strong id="delete-user-name"></strong> không? Hành động này không thể hoàn tác.</p>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" id="modal-cancel-btn">Hủy bỏ</button>
-            <button class="btn btn-primary" id="modal-save-btn">
-                <i class="fa-solid fa-floppy-disk"></i> Lưu người dùng
-            </button>
-        </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" style="background: var(--danger);"><i class="fa-solid fa-trash"></i> Xóa người dùng</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1134,6 +1047,8 @@
     const btnClose    = document.getElementById('modal-close-btn');
     const btnCancel   = document.getElementById('modal-cancel-btn');
     const btnSave     = document.getElementById('modal-save-btn');
+    const form        = document.getElementById('user-form');
+    const formMethod  = document.getElementById('form-method');
 
     function openModal(title = 'Thêm người dùng mới') {
         modalTitle.textContent = title;
@@ -1145,7 +1060,14 @@
         modal.classList.remove('open');
     }
 
-    btnNewUser.addEventListener('click', () => openModal('Thêm người dùng mới'));
+    btnNewUser.addEventListener('click', () => {
+        form.reset();
+        form.action = "{{ route('users.store') }}";
+        formMethod.value = "POST";
+        document.getElementById('input-password').required = true;
+        openModal('Thêm người dùng mới');
+    });
+
     btnClose.addEventListener('click', closeModal);
     btnCancel.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -1154,52 +1076,25 @@
         if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
     });
 
-    btnSave.addEventListener('click', () => {
-        const fn = document.getElementById('input-firstname').value.trim();
-        const ln = document.getElementById('input-lastname').value.trim();
-        const em = document.getElementById('input-email').value.trim();
-
-        if (!fn || !ln || !em) {
-            showToast('Vui lòng điền đầy đủ thông tin bắt buộc.', 'error');
-            return;
-        }
-
-        closeModal();
-        showToast('Người dùng đã được lưu thành công!', 'success');
-
-        // Reset form
-        ['input-firstname','input-lastname','input-email','input-password'].forEach(id => {
-            document.getElementById(id).value = '';
-        });
-    });
-
     /* ============================================================
        EDIT / DROPDOWN
     ============================================================ */
-    window.editUser = function (id, e) {
+    window.editUser = function (user, e) {
         e.preventDefault();
         closeAllDropdowns();
-        openModal('Chỉnh sửa người dùng #' + id);
-    };
+        
+        form.action = `/admin/users/${user.id}`;
+        formMethod.value = "PUT";
+        
+        document.getElementById('input-firstname').value = user.first_name;
+        document.getElementById('input-lastname').value = user.last_name;
+        document.getElementById('input-email').value = user.email;
+        document.getElementById('input-role').value = user.role || 'customer';
+        document.getElementById('input-status').value = user.status || 'active';
+        document.getElementById('input-password').value = '';
+        document.getElementById('input-password').required = false;
 
-    window.confirmBan = function (id, e) {
-        e.preventDefault();
-        closeAllDropdowns();
-        const row = document.querySelector(`tr[data-user-id="${id}"]`);
-        const isBanned = row && row.dataset.status === 'banned';
-        showToast(isBanned
-            ? `Đã gỡ cấm người dùng #${id}.`
-            : `Đã cấm người dùng #${id}.`, isBanned ? 'success' : 'error');
-    };
-
-    window.confirmDelete = function (id, e) {
-        e.preventDefault();
-        closeAllDropdowns();
-        if (confirm(`Bạn chắc chắn muốn xóa người dùng #${id}?`)) {
-            showToast(`Người dùng #${id} đã bị xóa.`, 'error');
-            const row = document.querySelector(`tr[data-user-id="${id}"]`);
-            if (row) row.remove();
-        }
+        openModal('Chỉnh sửa người dùng: ' + user.first_name);
     };
 
     /* ============================================================
@@ -1224,75 +1119,71 @@
     document.addEventListener('click', closeAllDropdowns);
 
     /* ============================================================
-       TOGGLE SWITCH
+       TOGGLE SWITCH (AJAX)
     ============================================================ */
     document.querySelectorAll('.user-toggle').forEach(toggle => {
         toggle.addEventListener('change', function () {
             const uid  = this.dataset.userid;
-            const name = this.closest('tr').querySelector('strong').textContent;
-            const msg  = this.checked
-                ? `Đã kích hoạt tài khoản ${name}.`
-                : `Đã vô hiệu hóa tài khoản ${name}.`;
-            showToast(msg, this.checked ? 'success' : '');
+            const isChecked = this.checked;
+            const name = this.closest('tr').querySelector('.user-meta strong').textContent;
+            
+            fetch(`/admin/users/${uid}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ status: isChecked ? 'active' : 'banned' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(`Tài khoản ${name} đã được ${isChecked ? 'kích hoạt' : 'vô hiệu hóa'}.`, isChecked ? 'success' : '');
+            })
+            .catch(err => {
+                showToast('Có lỗi xảy ra, vui lòng thử lại', 'error');
+                this.checked = !isChecked; // Khôi phục lại trạng thái cũ
+            });
         });
     });
 
     /* ============================================================
-       TABLE SEARCH & FILTER
+       DELETE MODAL
     ============================================================ */
-    const searchInput  = document.getElementById('table-search-input');
-    const filterRole   = document.getElementById('filter-role');
-    const filterStatus = document.getElementById('filter-status');
-    const tbody        = document.getElementById('users-tbody');
-    const emptyState   = document.getElementById('empty-state');
+    const modalDelete = document.getElementById('modal-delete');
+    const deleteForm = document.getElementById('delete-form');
+    const deleteUserName = document.getElementById('delete-user-name');
 
-    function filterTable() {
-        const q      = searchInput.value.toLowerCase();
-        const role   = filterRole.value.toLowerCase();
-        const status = filterStatus.value.toLowerCase();
-
-        let visible = 0;
-        document.querySelectorAll('#users-tbody tr').forEach(row => {
-            const name   = row.querySelector('strong')?.textContent.toLowerCase() || '';
-            const email  = row.querySelector('.email-cell')?.textContent.toLowerCase() || '';
-            const rowSt  = row.dataset.status || '';
-            const roleTx = row.querySelector('.badge')?.textContent.toLowerCase() || '';
-
-            const matchQ      = !q      || name.includes(q) || email.includes(q);
-            const matchStatus = !status || rowSt === status;
-            const matchRole   = !role   || roleTx.includes(role.replace('-', ' '));
-
-            const show = matchQ && matchStatus && matchRole;
-            row.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-
-        emptyState.style.display = visible === 0 ? 'flex' : 'none';
-        document.getElementById('showing-info').textContent =
-            visible === 0
-                ? 'Không tìm thấy kết quả'
-                : `Hiển thị 1–${visible} trong tổng 12,842 người dùng`;
+    window.confirmDeleteModal = function(id, name) {
+        closeAllDropdowns();
+        deleteUserName.textContent = name;
+        deleteForm.action = `/admin/users/${id}`;
+        modalDelete.classList.add('open');
     }
 
-    searchInput.addEventListener('input',  filterTable);
-    filterRole.addEventListener('change',  filterTable);
-    filterStatus.addEventListener('change', filterTable);
+    window.closeDeleteModal = function() {
+        modalDelete.classList.remove('open');
+    }
+
+    modalDelete.addEventListener('click', (e) => { if (e.target === modalDelete) closeDeleteModal(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalDelete.classList.contains('open')) closeDeleteModal();
+    });
 
     /* ============================================================
-       GLOBAL HEADER SEARCH (sync with table search)
+       AUTO-SUBMIT FILTER FORM
     ============================================================ */
-    const globalSearch = document.getElementById('global-search');
-    if (globalSearch) {
-        globalSearch.addEventListener('input', function () {
-            searchInput.value = this.value;
-            filterTable();
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.getElementById('filter-form').submit();
+            }, 600);
         });
     }
 
-    /* ============================================================
-       TOAST NOTIFICATIONS
-    ============================================================ */
-    function showToast(message, type = '') {
+    window.showToast = function(message, type = '') {
         const stack = document.getElementById('toast-stack');
         const toast = document.createElement('div');
         toast.className = 'toast' + (type ? ' ' + type : '');
@@ -1306,15 +1197,17 @@
     }
 
     /* ============================================================
-       PAGINATION BUTTONS (demo)
+       FLASH MESSAGES & VALIDATION ERRORS
     ============================================================ */
-    document.querySelectorAll('.page-btn:not(#prev-page):not(#next-page)').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.page-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            document.getElementById('prev-page').classList.toggle('disabled', this.textContent.trim() === '1');
-        });
-    });
+    @if ($errors->any())
+        @foreach ($errors->all() as $error)
+            showToast("{{ $error }}", "error");
+        @endforeach
+    @endif
+
+    @if (session('success'))
+        showToast("{{ session('success') }}", "success");
+    @endif
 
 })();
 </script>

@@ -1,0 +1,42 @@
+@startuml UC07 - Quản lý thanh toán
+' =============================================
+' UC07: Quản lý thanh toán (Payment)
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "Admin" as Admin
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Quản lý\nthanh toán" as UC_Main
+
+  usecase "Xem danh sách\ngiao dịch" as UC_Xem
+  usecase "Ghi nhận\nthanh toán mới" as UC_Them
+  usecase "Cập nhật\nthanh toán" as UC_Sua
+  usecase "Xóa thanh toán" as UC_Xoa
+
+  usecase "Tìm kiếm giao dịch\n(mã GD / mã đơn / tên KH)" as UC_TimKiem
+  usecase "Lọc theo trạng thái /\nphương thức TT" as UC_Loc
+  usecase "Chọn đơn hàng\nliên kết" as UC_ChonDon
+}
+
+Admin --> UC_Main
+
+UC_Main ..> UC_Xem : <<include>>
+
+UC_Them ..> UC_Main : <<extend>>
+UC_Sua ..> UC_Main : <<extend>>
+UC_Xoa ..> UC_Main : <<extend>>
+UC_TimKiem ..> UC_Xem : <<extend>>
+UC_Loc ..> UC_Xem : <<extend>>
+UC_Them ..> UC_ChonDon : <<include>>
+
+@enduml
+

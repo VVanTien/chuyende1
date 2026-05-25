@@ -385,6 +385,40 @@
         .stats-grid { grid-template-columns: repeat(2,1fr); }
         .form-row   { grid-template-columns: 1fr; }
     }
+
+    /* ====== UPLOAD ZONE ====== */
+    .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-sm);
+        padding: 20px 16px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg);
+        transition: border-color .2s, background .2s;
+        position: relative;
+        min-height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+    .upload-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+    .upload-icon { font-size: 26px; color: var(--text-muted); }
+    .upload-text { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .upload-hint { font-size: 11px; color: var(--text-muted); }
+    .upload-preview { position: relative; display: flex; justify-content: center; width: 100%; }
+    .upload-remove-btn {
+        position: absolute; top: -8px; right: -8px;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: var(--danger);
+        color: #fff;
+        border: none; cursor: pointer;
+        font-size: 11px;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 2;
+    }
 </style>
 @endsection
 
@@ -404,29 +438,25 @@
     <div class="stat-card">
         <div class="stat-label">Tổng đơn vị</div>
         <div class="stat-value-row">
-            <span class="stat-value">1,284</span>
-            <span class="stat-tag">+4%</span>
+            <span class="stat-value">{{ number_format($totalCars) }}</span>
         </div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Có sẵn</div>
         <div class="stat-value-row">
-            <span class="stat-value">842</span>
-            <span class="stat-tag pct">65%</span>
+            <span class="stat-value">{{ number_format($availableCars) }}</span>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Bán hàng tháng</div>
+        <div class="stat-label">Đang thuê</div>
         <div class="stat-value-row">
-            <span class="stat-value">156</span>
-            <span class="stat-tag">+12%</span>
+            <span class="stat-value">{{ number_format($rentedCars) }}</span>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Khách hàng tiềm năng</div>
+        <div class="stat-label">Bảo dưỡng</div>
         <div class="stat-value-row">
-            <span class="stat-value">42</span>
-            <span class="stat-tag hot">Hot</span>
+            <span class="stat-value">{{ number_format($maintenanceCars) }}</span>
         </div>
     </div>
 </div>
@@ -435,30 +465,32 @@
 <div class="table-card">
 
     {{-- Toolbar --}}
-    <div class="table-toolbar">
+    <form method="GET" action="{{ route('cars.index') }}" class="table-toolbar" id="filter-form">
         <div class="t-search">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="car-search" placeholder="Tìm tên xe, VIN..." aria-label="Tìm kiếm xe">
+            <input type="text" name="search" value="{{ request('search') }}" id="car-search" placeholder="Tìm tên xe, VIN..." aria-label="Tìm kiếm xe">
+            <button type="submit" style="display:none;"></button>
         </div>
-        <select class="filter-select" id="filter-brand" aria-label="Lọc theo hãng">
+        <select class="filter-select" name="brand_id" aria-label="Lọc theo hãng" onchange="this.form.submit()">
             <option value="">Tất cả hãng</option>
-            <option>Porsche</option>
-            <option>Lucid</option>
-            <option>Mercedes</option>
-            <option>BMW</option>
-            <option>Toyota</option>
+            @foreach($brands as $b)
+                <option value="{{ $b->id }}" {{ request('brand_id') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+            @endforeach
         </select>
-        <select class="filter-select" id="filter-status" aria-label="Lọc theo trạng thái">
+        <select class="filter-select" name="category_id" aria-label="Lọc theo dòng xe" onchange="this.form.submit()">
+            <option value="">Tất cả dòng xe</option>
+            @foreach($categories as $c)
+                <option value="{{ $c->id }}" {{ request('category_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+            @endforeach
+        </select>
+        <select class="filter-select" name="status" aria-label="Lọc theo trạng thái" onchange="this.form.submit()">
             <option value="">Tất cả trạng thái</option>
-            <option value="available">Có sẵn</option>
-            <option value="pending">Chờ xử lý</option>
-            <option value="sold">Đã bán</option>
+            <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Có sẵn</option>
+            <option value="rented" {{ request('status') == 'rented' ? 'selected' : '' }}>Đang thuê</option>
+            <option value="maintenance" {{ request('status') == 'maintenance' ? 'selected' : '' }}>Bảo dưỡng</option>
         </select>
         <div class="toolbar-spacer"></div>
-        <button class="btn btn-ghost" id="btn-export">
-            <i class="fa-solid fa-download"></i> Xuất
-        </button>
-    </div>
+    </form>
 
     {{-- Table --}}
     <div style="overflow-x:auto;">
@@ -474,178 +506,195 @@
                 </tr>
             </thead>
             <tbody id="cars-tbody">
-                <tr data-status="available">
-                    <td><div class="thumb-wrap"><i class="fa-solid fa-car-side"></i></div></td>
+                @forelse($cars as $car)
+                <tr>
                     <td>
-                        <div class="vname">911 Carrera S</div>
-                        <div class="vvin">VIN: LP921-X01</div>
+                        <div class="thumb-wrap" style="width: 72px; height: 48px; border-radius: 6px; overflow: hidden; background: var(--bg); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-light);">
+                            @if($car->thumbnail)
+                                <img src="{{ asset($car->thumbnail) }}" alt="{{ $car->name }}" style="width: 100%; height: 100%; object-fit: contain; padding: 3px;">
+                            @else
+                                <i class="fa-solid fa-car-side" style="color: var(--text-muted);"></i>
+                            @endif
+                        </div>
                     </td>
-                    <td class="brand-cell">Porsche</td>
-                    <td class="price-cell">$114,400</td>
-                    <td><span class="status-pill pill-available">CÓ SẴN</span></td>
+                    <td>
+                        <div class="vname" style="font-weight: 700;">{{ $car->name }}</div>
+                        <div class="vvin" style="font-size: 11px; color: var(--text-muted);">VIN: {{ $car->vin_code }}</div>
+                    </td>
+                    <td class="brand-cell" style="font-weight: 500;">{{ $car->brand->name ?? '-' }}</td>
+                    <td class="price-cell" style="font-weight: 600; color: var(--success);">${{ number_format($car->sale_price) }}</td>
+                    <td>
+                        @if($car->status == 'available')
+                            <span class="status-pill pill-available" style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">CÓ SẴN</span>
+                        @elseif($car->status == 'rented')
+                            <span class="status-pill pill-pending" style="background: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">ĐANG THUÊ</span>
+                        @elseif($car->status == 'maintenance')
+                            <span class="status-pill pill-sold" style="background: #fecdd3; color: #be123c; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">BẢO DƯỠNG</span>
+                        @else
+                            <span class="status-pill" style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;">{{ strtoupper($car->status) }}</span>
+                        @endif
+                    </td>
                     <td>
                         <div class="action-group">
-                            <a href="#" class="act-btn" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></a>
-                            <button class="act-btn" title="Chỉnh sửa" onclick="editCar(1)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteCar(1)"><i class="fa-solid fa-trash"></i></button>
+                            <button type="button" class="act-btn" title="Chỉnh sửa" onclick="editCar({{ $car }})"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="act-btn danger" title="Xóa" onclick="confirmDeleteModal({{ $car->id }}, '{{ $car->name }}')"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
-                <tr data-status="pending">
-                    <td><div class="thumb-wrap"><i class="fa-solid fa-car-side"></i></div></td>
-                    <td>
-                        <div class="vname">Lucid Air Dream</div>
-                        <div class="vvin">VIN: LA001-Z99</div>
-                    </td>
-                    <td class="brand-cell">Lucid</td>
-                    <td class="price-cell">$169,000</td>
-                    <td><span class="status-pill pill-pending">CHỜ XỬ LÝ</span></td>
-                    <td>
-                        <div class="action-group">
-                            <a href="#" class="act-btn" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                            <button class="act-btn" title="Sửa" onclick="editCar(2)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteCar(2)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                @empty
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fa-solid fa-car-burst" style="font-size:36px;opacity:.3;"></i>
+                        <p style="margin-top:10px;font-size:14px;font-weight:500;">Không có dữ liệu xe.</p>
                     </td>
                 </tr>
-                <tr data-status="sold">
-                    <td><div class="thumb-wrap"><i class="fa-solid fa-car-side"></i></div></td>
-                    <td>
-                        <div class="vname">G-Wagon G63</div>
-                        <div class="vvin">VIN: MB882-G21</div>
-                    </td>
-                    <td class="brand-cell">Mercedes</td>
-                    <td class="price-cell">$179,000</td>
-                    <td><span class="status-pill pill-sold">ĐÃ BÁN</span></td>
-                    <td>
-                        <div class="action-group">
-                            <a href="#" class="act-btn" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                            <button class="act-btn" title="Sửa" onclick="editCar(3)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteCar(3)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-                <tr data-status="available">
-                    <td><div class="thumb-wrap"><i class="fa-solid fa-car-side"></i></div></td>
-                    <td>
-                        <div class="vname">BMW i7 M70</div>
-                        <div class="vvin">VIN: BM-882-LL</div>
-                    </td>
-                    <td class="brand-cell">BMW</td>
-                    <td class="price-cell">$135,000</td>
-                    <td><span class="status-pill pill-available">CÓ SẴN</span></td>
-                    <td>
-                        <div class="action-group">
-                            <a href="#" class="act-btn" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                            <button class="act-btn" title="Sửa" onclick="editCar(4)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteCar(4)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-                <tr data-status="available">
-                    <td><div class="thumb-wrap"><i class="fa-solid fa-car-side"></i></div></td>
-                    <td>
-                        <div class="vname">Toyota Land Cruiser 300</div>
-                        <div class="vvin">VIN: TY300-2024</div>
-                    </td>
-                    <td class="brand-cell">Toyota</td>
-                    <td class="price-cell">$88,500</td>
-                    <td><span class="status-pill pill-available">CÓ SẴN</span></td>
-                    <td>
-                        <div class="action-group">
-                            <a href="#" class="act-btn" title="Xem"><i class="fa-solid fa-eye"></i></a>
-                            <button class="act-btn" title="Sửa" onclick="editCar(5)"><i class="fa-solid fa-pen"></i></button>
-                            <button class="act-btn danger" title="Xóa" onclick="deleteCar(5)"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    {{-- Empty state --}}
-    <div id="empty-cars" style="display:none; padding:48px 20px; text-align:center; color:var(--text-muted);">
-        <i class="fa-solid fa-car-burst" style="font-size:36px;opacity:.3;"></i>
-        <p style="margin-top:10px;font-size:14px;font-weight:500;">Không tìm thấy xe phù hợp.</p>
-    </div>
-
     {{-- Footer --}}
-    <div class="table-foot">
-        <span class="foot-info" id="car-foot-info">Hiển thị 1–5 trong 1,284 xe</span>
-        <nav class="pagination" aria-label="Phân trang kho xe">
-            <button class="page-btn disabled" aria-label="Trang trước"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="page-btn active" aria-current="page">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn">3</button>
-            <span style="color:var(--text-muted);font-size:12px;padding:0 4px;align-self:center;">…</span>
-            <button class="page-btn">257</button>
-            <button class="page-btn" aria-label="Trang tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+    <div class="table-foot" style="padding: 14px 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+        <span class="foot-info" id="car-foot-info" style="font-size: 13px; color: var(--text-secondary);">
+            Hiển thị {{ $cars->firstItem() ?? 0 }}–{{ $cars->lastItem() ?? 0 }} trong tổng {{ number_format($cars->total()) }} xe
+        </span>
+        @php $cars->appends(request()->query()) @endphp
+        <nav class="pagination" aria-label="Phân trang kho xe" style="display: flex; gap: 4px;">
+            @if ($cars->onFirstPage())
+                <span class="act-btn disabled" style="opacity: 0.5; pointer-events: none;"><i class="fa-solid fa-chevron-left"></i></span>
+            @else
+                <a href="{{ $cars->previousPageUrl() }}" class="act-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            @endif
+
+            @foreach ($cars->getUrlRange(1, $cars->lastPage()) as $page => $url)
+                @if ($page >= $cars->currentPage() - 2 && $page <= $cars->currentPage() + 2)
+                    <a href="{{ $url }}" class="act-btn" style="{{ $page == $cars->currentPage() ? 'background: var(--primary); color: white;' : '' }}">{{ $page }}</a>
+                @endif
+            @endforeach
+
+            @if ($cars->hasMorePages())
+                <a href="{{ $cars->nextPageUrl() }}" class="act-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            @else
+                <span class="act-btn disabled" style="opacity: 0.5; pointer-events: none;"><i class="fa-solid fa-chevron-right"></i></span>
+            @endif
         </nav>
     </div>
-
 </div>
 
 {{-- MODAL: Thêm / Sửa xe --}}
 <div class="modal-overlay" id="car-modal" role="dialog" aria-modal="true" aria-labelledby="car-modal-title">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="car-modal-title">Thêm xe mới</h2>
-            <button class="modal-close" id="car-modal-close" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="car-name">Tên xe</label>
-                    <input type="text" id="car-name" placeholder="VD: Porsche 911 Carrera S">
+    <div class="modal" style="max-width: 600px;">
+        <form id="car-form" action="{{ route('cars.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="_method" id="form-method" value="POST">
+            
+            <div class="modal-header">
+                <h2 id="car-modal-title">Thêm xe mới</h2>
+                <button type="button" class="modal-close" id="car-modal-close" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="car-name">Tên xe</label>
+                        <input type="text" name="name" id="car-name" placeholder="VD: Porsche 911 Carrera S" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="car-vin">Số VIN</label>
+                        <input type="text" name="vin_code" id="car-vin" placeholder="VD: LP921-X01" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="car-brand">Hãng xe</label>
+                        <select name="brand_id" id="car-brand" required>
+                            <option value="">Chọn hãng xe...</option>
+                            @foreach($brands as $b)
+                                <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="car-category">Dòng xe</label>
+                        <select name="category_id" id="car-category">
+                            <option value="">Chọn dòng xe...</option>
+                            @foreach($categories as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="car-year">Năm sản xuất</label>
+                        <input type="number" name="year" id="car-year" placeholder="2024" min="1900" max="2030" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="car-price">Giá niêm yết (USD)</label>
+                        <input type="number" name="sale_price" id="car-price" placeholder="0.00" step="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="car-daily-rate">Giá thuê/ngày (USD)</label>
+                        <input type="number" name="daily_rate" id="car-daily-rate" placeholder="0.00" step="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="car-status">Trạng thái</label>
+                        <select name="status" id="car-status">
+                            <option value="available">Có sẵn</option>
+                            <option value="rented">Đang thuê</option>
+                            <option value="maintenance">Bảo dưỡng</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="car-vin">Số VIN</label>
-                    <input type="text" id="car-vin" placeholder="VD: LP921-X01">
+                    <label>Hình ảnh (Thumbnail)</label>
+                    <div class="upload-zone" id="car-thumb-zone" onclick="document.getElementById('car-thumbnail').click()">
+                        <div class="upload-preview" id="car-thumb-preview" style="display:none;">
+                            <img id="car-thumb-preview-img" src="" alt="Preview" style="max-height:140px; max-width:100%; border-radius:8px; object-fit:cover;">
+                            <button type="button" class="upload-remove-btn" id="car-thumb-remove" title="Xóa ảnh">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div class="upload-placeholder" id="car-thumb-placeholder">
+                            <i class="fa-solid fa-image upload-icon"></i>
+                            <span class="upload-text">Nhấn để chọn hoặc kéo thả ảnh xe</span>
+                            <span class="upload-hint">PNG, JPG, WEBP &mdash; tối đa 5MB</span>
+                        </div>
+                        <input type="file" name="thumbnail" id="car-thumbnail" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="car-desc">Mô tả</label>
+                    <textarea name="description" id="car-desc" rows="3" placeholder="Mô tả ngắn về xe..."></textarea>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="car-brand">Hãng xe</label>
-                    <select id="car-brand">
-                        <option value="">Chọn hãng...</option>
-                        <option>Porsche</option>
-                        <option>Lucid</option>
-                        <option>Mercedes</option>
-                        <option>BMW</option>
-                        <option>Toyota</option>
-                        <option>Audi</option>
-                        <option>Ferrari</option>
-                        <option>Lamborghini</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="car-year">Năm sản xuất</label>
-                    <input type="number" id="car-year" placeholder="2024" min="2000" max="2030">
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="car-modal-cancel">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" id="car-modal-save"><i class="fa-solid fa-floppy-disk"></i> Lưu xe</button>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="car-price">Giá niêm yết (USD)</label>
-                    <input type="number" id="car-price" placeholder="0.00" step="100">
-                </div>
-                <div class="form-group">
-                    <label for="car-status">Trạng thái</label>
-                    <select id="car-status">
-                        <option value="available">Có sẵn</option>
-                        <option value="pending">Chờ xử lý</option>
-                        <option value="sold">Đã bán</option>
-                    </select>
-                </div>
+        </form>
+    </div>
+</div>
+
+{{-- MODAL XÓA --}}
+<div class="modal-overlay" id="modal-delete">
+    <div class="modal" style="max-width: 400px;">
+        <form id="delete-form" action="" method="POST">
+            @csrf
+            @method('DELETE')
+            <div class="modal-header">
+                <h2>Xác nhận xóa</h2>
+                <button type="button" class="modal-close" onclick="closeDeleteModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="form-group">
-                <label for="car-desc">Mô tả</label>
-                <textarea id="car-desc" rows="3" placeholder="Mô tả ngắn về xe..."></textarea>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa xe <strong id="delete-car-name"></strong> không? Hành động này không thể hoàn tác.</p>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-ghost" id="car-modal-cancel">Hủy bỏ</button>
-            <button class="btn btn-primary" id="car-modal-save"><i class="fa-solid fa-floppy-disk"></i> Lưu xe</button>
-        </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteModal()">Hủy bỏ</button>
+                <button type="submit" class="btn btn-primary" style="background: var(--danger);"><i class="fa-solid fa-trash"></i> Xóa</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -661,68 +710,89 @@
     /* Modal */
     const modal       = document.getElementById('car-modal');
     const modalTitle  = document.getElementById('car-modal-title');
+    const form        = document.getElementById('car-form');
+    const formMethod  = document.getElementById('form-method');
+
     const openModal   = (title) => { modalTitle.textContent = title; modal.classList.add('open'); };
     const closeModal  = () => modal.classList.remove('open');
 
-    document.getElementById('btn-add-car').addEventListener('click', () => openModal('Thêm xe mới'));
+    /* Reset upload zone helper */
+    function resetUploadZone() {
+        const input       = document.getElementById('car-thumbnail');
+        const preview     = document.getElementById('car-thumb-preview');
+        const previewImg  = document.getElementById('car-thumb-preview-img');
+        const placeholder = document.getElementById('car-thumb-placeholder');
+        if (input)       input.value = '';
+        if (previewImg)  previewImg.src = '';
+        if (preview)     preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
+    }
+
+    document.getElementById('btn-add-car').addEventListener('click', () => {
+        form.reset();
+        form.action = "{{ route('cars.store') }}";
+        formMethod.value = "POST";
+        resetUploadZone();
+        openModal('Thêm xe mới');
+    });
+
     document.getElementById('car-modal-close').addEventListener('click', closeModal);
     document.getElementById('car-modal-cancel').addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if(e.target===modal) closeModal(); });
     document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-    document.getElementById('car-modal-save').addEventListener('click', () => {
-        const name = document.getElementById('car-name').value.trim();
-        if(!name){ showToast('Vui lòng nhập tên xe.','error'); return; }
-        closeModal();
-        showToast('Xe đã được lưu thành công!','success');
-    });
-
     /* Edit / Delete */
-    window.editCar   = (id) => openModal('Chỉnh sửa xe #'+id);
-    window.deleteCar = (id) => {
-        if(confirm('Xóa xe #'+id+'?')){
-            document.querySelector(`tr:nth-child(${id})`);
-            showToast('Đã xóa xe #'+id+'.','error');
-        }
+    window.editCar = (car) => {
+        form.action = `/admin/cars/${car.id}`;
+        formMethod.value = "PUT";
+        resetUploadZone();
+        
+        document.getElementById('car-name').value = car.name;
+        document.getElementById('car-vin').value = car.vin_code;
+        document.getElementById('car-brand').value = car.brand_id || '';
+        document.getElementById('car-category').value = car.category_id || '';
+        document.getElementById('car-year').value = car.year;
+        document.getElementById('car-price').value = car.sale_price || '';
+        document.getElementById('car-daily-rate').value = car.daily_rate || '';
+        document.getElementById('car-status').value = car.status || 'available';
+        document.getElementById('car-desc').value = car.description || '';
+        
+        openModal('Chỉnh sửa xe: ' + car.name);
     };
 
-    /* Search & Filter */
-    const searchInput = document.getElementById('car-search');
-    const filterBrand = document.getElementById('filter-brand');
-    const filterSt    = document.getElementById('filter-status');
-    const emptyEl     = document.getElementById('empty-cars');
+    /* DELETE MODAL */
+    const modalDelete = document.getElementById('modal-delete');
+    const deleteForm = document.getElementById('delete-form');
+    const deleteCarName = document.getElementById('delete-car-name');
 
-    function filterTable(){
-        const q  = searchInput.value.toLowerCase();
-        const br = filterBrand.value.toLowerCase();
-        const st = filterSt.value.toLowerCase();
-        let visible = 0;
-        document.querySelectorAll('#cars-tbody tr').forEach(row => {
-            const name   = row.querySelector('.vname')?.textContent.toLowerCase()||'';
-            const vin    = row.querySelector('.vvin')?.textContent.toLowerCase()||'';
-            const brand  = row.querySelector('.brand-cell')?.textContent.toLowerCase()||'';
-            const status = row.dataset.status||'';
-            const show   = (!q||(name.includes(q)||vin.includes(q)))
-                        && (!br||brand===br)
-                        && (!st||status===st);
-            row.style.display = show ? '' : 'none';
-            if(show) visible++;
-        });
-        emptyEl.style.display = visible===0 ? 'block' : 'none';
-        document.getElementById('car-foot-info').textContent
-            = visible===0 ? 'Không tìm thấy kết quả'
-                           : `Hiển thị 1–${visible} trong 1,284 xe`;
+    window.confirmDeleteModal = function(id, name) {
+        deleteCarName.textContent = name;
+        deleteForm.action = `/admin/cars/${id}`;
+        modalDelete.classList.add('open');
     }
 
-    searchInput.addEventListener('input', filterTable);
-    filterBrand.addEventListener('change', filterTable);
-    filterSt.addEventListener('change', filterTable);
+    window.closeDeleteModal = function() {
+        modalDelete.classList.remove('open');
+    }
+    modalDelete.addEventListener('click', (e) => { if (e.target === modalDelete) closeDeleteModal(); });
+
+    /* AUTO-SUBMIT SEARCH */
+    const searchInput = document.querySelector('input[name="search"]');
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.getElementById('filter-form').submit();
+            }, 600);
+        });
+    }
 
     /* Export btn */
     document.getElementById('btn-export').addEventListener('click', () => showToast('Đang xuất dữ liệu...'));
 
     /* Toast */
-    function showToast(msg, type=''){
+    window.showToast = function(msg, type=''){
         const stack = document.getElementById('toast-stack');
         const el    = document.createElement('div');
         el.className = 'toast'+(type?' '+type:'');
@@ -730,6 +800,73 @@
         stack.appendChild(el);
         setTimeout(()=>{ el.classList.add('removing'); setTimeout(()=>el.remove(),220); },3000);
     }
+
+    /* FLASH MESSAGES */
+    @if ($errors->any())
+        @foreach ($errors->all() as $error)
+            showToast("{{ $error }}", "error");
+        @endforeach
+    @endif
+
+    @if (session('success'))
+        showToast("{{ session('success') }}", "success");
+    @endif
+})();
+</script>
+
+<script>
+/* ====== Upload Zone: Car Thumbnail ====== */
+(function(){
+    function setupUploadZone(inputId, previewId, previewImgId, placeholderId, removeId, zoneId) {
+        const input       = document.getElementById(inputId);
+        const preview     = document.getElementById(previewId);
+        const previewImg  = document.getElementById(previewImgId);
+        const placeholder = document.getElementById(placeholderId);
+        const removeBtn   = document.getElementById(removeId);
+        const zone        = document.getElementById(zoneId);
+
+        if (!input) return;
+
+        input.addEventListener('change', function(){
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'flex';
+                    placeholder.style.display = 'none';
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        removeBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            input.value = '';
+            previewImg.src = '';
+            preview.style.display = 'none';
+            placeholder.style.display = 'flex';
+        });
+
+        // Drag & drop
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
+    setupUploadZone(
+        'car-thumbnail', 'car-thumb-preview', 'car-thumb-preview-img',
+        'car-thumb-placeholder', 'car-thumb-remove', 'car-thumb-zone'
+    );
 })();
 </script>
 @endsection

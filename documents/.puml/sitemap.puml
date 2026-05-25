@@ -1,0 +1,76 @@
+@startmindmap Sitemap - Bản đồ trang web
+' =============================================
+' Sitemap: Bản đồ trang web (Sitemap Mindmap Diagram)
+' Đồ án: Website quản lý bán ô tô (Kinetic)
+' =============================================
+
+' Cấu hình skinparam cho mindmap đẹp mắt
+skinparam box {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+}
+skinparam mindmap {
+  PrimaryNode {
+    BackgroundColor #FFEAEA
+    BorderColor #A80036
+    FontSize 14
+    FontStyle bold
+  }
+  Node {
+    BackgroundColor #FEFECE
+    BorderColor #333333
+    FontSize 12
+  }
+}
+
+* **Hệ Thống Quản Trị Kinetic (Admin Panel)**
+
+** [Trang chung (Auth Pages)]
+*** Đăng nhập (Login)
+*** Đăng ký tài khoản (Register)
+*** Quên mật khẩu (Forgot Password)
+
+** [Luồng Admin (Toàn quyền CRUD)]
+*** Dashboard tổng quan
+**** Xem toàn bộ thống kê hệ thống (Doanh thu, Xe, User, Booking)
+**** Xem biểu đồ xu hướng 30 ngày & nguồn lưu lượng
+*** Quản lý người dùng (Users)
+**** Xem danh sách, tìm kiếm, lọc
+**** Thêm mới / Cập nhật thông tin người dùng
+**** Xóa & cập nhật trạng thái (Active/Banned/Pending)
+*** Quản lý xe ô tô (Cars)
+**** Xem danh sách & tìm kiếm theo VIN/Tên xe
+**** Thêm xe mới & Upload ảnh đại diện
+**** Chỉnh sửa chi tiết & Xóa xe
+*** Quản lý hãng & dòng xe (Brands/Categories)
+**** Xem danh sách hãng xe & dòng xe
+**** Thêm mới, chỉnh sửa, xóa hãng (Upload logo)
+**** Thêm mới, chỉnh sửa, xóa dòng xe
+*** Quản lý đơn hàng (Orders)
+**** Xem toàn bộ danh sách đơn hàng
+**** Tạo đơn hàng mới & cập nhật trạng thái đơn
+*** Quản lý thanh toán (Payments)
+**** Xem lịch sử toàn bộ giao dịch thanh toán
+**** Ghi nhận giao dịch thanh toán mới
+
+left side
+
+** [Luồng Khách Hàng (Hạn chế quyền - Read Only & Giao dịch)]
+*** Dashboard cá nhân
+**** Xem thống kê số lượng đơn đặt xe cá nhân
+**** Xem thông báo trạng thái đơn hàng gần nhất
+*** Khám phá kho xe (Cars View)
+**** Xem danh sách xe đang có sẵn (Available)
+**** Tìm kiếm xe, lọc theo hãng & dòng xe
+**** Xem thông số kỹ thuật chi tiết của xe
+*** Quản lý đơn đặt xe cá nhân (My Orders)
+**** Gửi yêu cầu thuê xe (Tạo đơn hàng Rental)
+**** Gửi yêu cầu mua xe (Tạo đơn hàng Sale)
+**** Xem danh sách & theo dõi trạng thái đơn hàng của chính mình
+*** Nhật ký thanh toán cá nhân (My Payments)
+**** Xem danh sách hóa đơn & lịch sử thanh toán cá nhân
+**** Xem mã giao dịch (Transaction ID) đối chiếu cọc
+*** Tài khoản cá nhân (Account Settings)
+**** Xem & Cập nhật thông tin cá nhân (Họ tên, SĐT, Mật khẩu)
+
+@endmindmap

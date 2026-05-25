@@ -23,7 +23,7 @@
     <span>Tài khoản demo: <strong>admin@kinetic.com</strong> / <strong>password</strong></span>
 </div> --}}
 
-<form method="POST" action="{{ url('/login') }}" id="login-form" novalidate>
+<form method="POST" action="{{ url('/auth/login') }}" id="login-form" novalidate>
     @csrf
 
     {{-- Email --}}
@@ -76,7 +76,7 @@
             <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
             Ghi nhớ đăng nhập
         </label>
-        <a href="{{ url('/forgot-password') }}" class="forgot-link">Quên mật khẩu?</a>
+        <a href="{{ url('/auth/forgot-password') }}" class="forgot-link">Quên mật khẩu?</a>
     </div>
 
     {{-- Submit --}}
@@ -93,7 +93,7 @@
 
 <div class="auth-footer-link">
     Liên hệ quản trị hệ thống để được cấp tài khoản
-    hoặc <a href="{{ url('/register') }}">đăng ký tại đây</a>.
+    hoặc <a href="{{ url('/auth/register') }}">đăng ký tại đây</a>.
 </div>
 
 @endsection

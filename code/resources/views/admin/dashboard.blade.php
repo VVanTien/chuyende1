@@ -330,44 +330,44 @@
     <div class="stat-card">
         <div class="stat-card-top">
             <div class="stat-icon blue"><i class="fa-solid fa-car"></i></div>
-            <span class="stat-change up">+12%</span>
+            <span class="stat-change up">+{{ number_format($carsChange, 1) }}%</span>
         </div>
         <div class="stat-card-bottom">
             <div class="stat-label">Tổng xe</div>
-            <div class="stat-value">1,284</div>
+            <div class="stat-value">{{ number_format($totalCars) }}</div>
         </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card-top">
             <div class="stat-icon green"><i class="fa-solid fa-user-check"></i></div>
-            <span class="stat-change up">+5.4%</span>
+            <span class="stat-change up">+{{ number_format($usersChange, 1) }}%</span>
         </div>
         <div class="stat-card-bottom">
             <div class="stat-label">Người dùng hoạt động</div>
-            <div class="stat-value">8,420</div>
+            <div class="stat-value">{{ number_format($activeUsers) }}</div>
         </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card-top">
             <div class="stat-icon amber"><i class="fa-solid fa-calendar-check"></i></div>
-            <span class="stat-change down">-2.1%</span>
+            <span class="stat-change {{ $bookingsTrend }}">{{ $bookingsTrend === 'up' ? '+' : '-' }}{{ number_format($bookingsChange, 1) }}%</span>
         </div>
         <div class="stat-card-bottom">
             <div class="stat-label">Đặt xe hàng tháng</div>
-            <div class="stat-value">412</div>
+            <div class="stat-value">{{ number_format($monthlyBookings) }}</div>
         </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card-top">
             <div class="stat-icon purple"><i class="fa-solid fa-dollar-sign"></i></div>
-            <span class="stat-change up">+18%</span>
+            <span class="stat-change up">+{{ number_format($revenueChange, 1) }}%</span>
         </div>
         <div class="stat-card-bottom">
             <div class="stat-label">Tổng doanh thu</div>
-            <div class="stat-value">$2.4M</div>
+            <div class="stat-value">{{ $formattedRevenue }}</div>
         </div>
     </div>
 </div>
@@ -456,51 +456,41 @@
             </tr>
         </thead>
         <tbody>
+            @forelse ($popularCars as $car)
             <tr>
                 <td>
                     <div class="vehicle-cell">
-                        <div class="vehicle-thumb"><i class="fa-solid fa-car-side"></i></div>
+                        <div class="vehicle-thumb">
+                            @if ($car->thumbnail)
+                                <img src="{{ asset($car->thumbnail) }}" alt="{{ $car->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            @else
+                                <i class="fa-solid fa-car-side"></i>
+                            @endif
+                        </div>
                         <div>
-                            <div class="vehicle-name">Lucid Air Grand Touring</div>
-                            <div class="vehicle-vin">EV-721-AC</div>
+                            <div class="vehicle-name">{{ $car->name }}</div>
+                            <div class="vehicle-vin">{{ $car->vin_code }}</div>
                         </div>
                     </div>
                 </td>
-                <td class="cat-cell">Sedan / Luxury</td>
-                <td><span class="status-pill pill-booked">ĐÃ ĐẶT</span></td>
-                <td class="rate-cell">$350.00</td>
-                <td class="revenue-cell">$12,450</td>
-            </tr>
-            <tr>
+                <td class="cat-cell">{{ $car->category->name ?? 'Không phân loại' }} / {{ $car->brand->name ?? 'N/A' }}</td>
                 <td>
-                    <div class="vehicle-cell">
-                        <div class="vehicle-thumb"><i class="fa-solid fa-car-side"></i></div>
-                        <div>
-                            <div class="vehicle-name">Porsche Taycan Turbo</div>
-                            <div class="vehicle-vin">PZ-390-TS</div>
-                        </div>
-                    </div>
+                    @if ($car->status === 'available')
+                        <span class="status-pill pill-available">CÓ SẴN</span>
+                    @else
+                        <span class="status-pill pill-booked">ĐÃ ĐẶT</span>
+                    @endif
                 </td>
-                <td class="cat-cell">Performance / GT</td>
-                <td><span class="status-pill pill-available">CÓ SẴN</span></td>
-                <td class="rate-cell">$425.00</td>
-                <td class="revenue-cell">$8,900</td>
+                <td class="rate-cell">${{ number_format($car->daily_rate, 2) }}</td>
+                <td class="revenue-cell">${{ number_format($car->revenue, 0) }}</td>
             </tr>
+            @empty
             <tr>
-                <td>
-                    <div class="vehicle-cell">
-                        <div class="vehicle-thumb"><i class="fa-solid fa-car-side"></i></div>
-                        <div>
-                            <div class="vehicle-name">BMW i7 M70</div>
-                            <div class="vehicle-vin">BM-882-LL</div>
-                        </div>
-                    </div>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                    Chưa có xe nổi bật trong hệ thống
                 </td>
-                <td class="cat-cell">Exec / Luxury</td>
-                <td><span class="status-pill pill-booked">ĐÃ ĐẶT</span></td>
-                <td class="rate-cell">$380.00</td>
-                <td class="revenue-cell">$15,200</td>
             </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
@@ -515,13 +505,13 @@
     'use strict';
 
     /* ── Booking Trends Chart ── */
-    const labels = ['01','03','05','07','09','11','13','15','17','19','21','23','25','27','29'];
-    const barData = [28,42,35,55,38,62,48,75,52,44,58,70,45,66,80];
-    const lineData = [30,35,33,45,40,52,50,58,54,50,56,62,55,60,72];
+    const labels = @json($chartLabels);
+    const barData = @json($chartBarData);
+    const lineData = @json($chartLineData);
 
     const ctx = document.getElementById('bookingChart').getContext('2d');
 
-    new Chart(ctx, {
+    const myChart = new Chart(ctx, {
         data: {
             labels,
             datasets: [
@@ -580,10 +570,12 @@
 
     /* ── Period Selector ── */
     document.getElementById('period-select').addEventListener('change', function () {
-        // demo: re-shuffle data
-        const newBar  = barData.map(() => Math.floor(Math.random()*60)+20);
-        const newLine = newBar.map(v => v - Math.floor(Math.random()*10));
-        ctx.chart && ctx.chart.destroy();
+        // Shuffle lại dữ liệu tương ứng khi đổi khoảng thời gian cho sinh động
+        const newBar  = barData.map(() => Math.floor(Math.random() * 60) + 15);
+        const newLine = newBar.map(v => Math.max(5, v - Math.floor(Math.random() * 12)));
+        myChart.data.datasets[0].data = newBar;
+        myChart.data.datasets[1].data = newLine;
+        myChart.update();
     });
 
 })();

@@ -1,0 +1,50 @@
+@startuml UC00 - Sơ đồ Use Case tổng quan
+' =============================================
+' Sơ đồ Use Case tổng quan (Overview)
+' Đồ án: Website quản lý bán ô tô
+' =============================================
+' Các use case chi tiết nằm trong thư mục usecases/
+'   UC01_DangKy_DangNhap.puml
+'   UC02_QuanLyNguoiDung.puml
+'   UC03_QuanLyXe.puml
+'   UC04_QuanLyHangXe.puml
+'   UC05_QuanLyDongXe.puml
+'   UC06_QuanLyDonHang.puml
+'   UC07_QuanLyThanhToan.puml
+'   UC08_Dashboard.puml
+' =============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FEFECE
+  BorderColor #A80036
+  ArrowColor #333333
+}
+
+actor "User\n(Khách hàng)" as User
+actor "Admin\n(Quản trị viên)" as Admin
+
+rectangle "Hệ thống quản lý bán ô tô" {
+  usecase "Đăng ký /\nĐăng nhập" as UC01
+  usecase "Quản lý\nngười dùng" as UC02
+  usecase "Quản lý\nxe ô tô" as UC03
+  usecase "Quản lý\nhãng xe" as UC04
+  usecase "Quản lý\ndòng xe" as UC05
+  usecase "Quản lý\nđơn hàng" as UC06
+  usecase "Quản lý\nthanh toán" as UC07
+  usecase "Xem tổng quan\nDashboard" as UC08
+}
+
+User --> UC01
+
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+Admin --> UC04
+Admin --> UC05
+Admin --> UC06
+Admin --> UC07
+Admin --> UC08
+
+@enduml
